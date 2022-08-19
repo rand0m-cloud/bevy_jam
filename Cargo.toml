@@ -1,0 +1,18 @@
+[package]
+name = "bevy_jam"
+version = "0.0.0"
+edition = "2021"
+license = "MIT"
+
+[[bin]]
+path = "run_godot.rs"
+name = "run_game"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+gdnative = "0.10"
+bevy = {version = "0.8", default-features = false}
+bevy_godot = {git = "https://github.com/rand0m-cloud/bevy_godot", branch = "0.2-rc"}
+bevy_asset_loader = "0.12.0"

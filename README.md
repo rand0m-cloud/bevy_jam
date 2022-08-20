@@ -1,0 +1,27 @@
+- * Fallout shelter
+ - Gas generator that will need refills
+ - Crafting station at shelter
+ - Pumps up water, player has hydration level/stamina
+ - Autofarmer, kinda slow to generate rations
+ - Fenced In, you can shelter there forever
+- Airdrops
+ - Buildable parts
+ - One gas airdrop when gen runs out
+ - Zombies will swarm them
+ - Water bottle
+- Craftable traps with recipes
+- Endless survival
+ - Zombies are attracted to noise
+ - A drone could go out and make noise
+- * Zombies
+  - Randomly placed
+  - * Mindless roam
+  - Head to noise/sound
+- * Player
+ - * Point to shoot
+ - * AD to rotate, WS to move forward/backwards
+ - Rightclick/keybind to place trap
+ - Compass
+ - Gameover
+   - Zombies can strike you
+   - Runs out of water or food

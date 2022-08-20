@@ -305,11 +305,12 @@ dependencies = [
 [[package]]
 name = "bevy_godot"
 version = "0.2.0"
-source = "git+https://github.com/rand0m-cloud/bevy_godot?branch=0.2-rc#0be04246ec4e2abdcec84c4d5fb6a150781b79cc"
+source = "git+https://github.com/rand0m-cloud/bevy_godot?branch=0.2#c2ec0e3a25eb42999255fa285f21b96487baf5af"
 dependencies = [
  "anyhow",
  "bevy",
  "gdnative",
+ "iyes_loopless",
  "lazy_static",
 ]
 
@@ -1290,6 +1291,18 @@ name = "itoa"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c8af84674fe1f223a982c933a0ee1086ac4d4052aa0fb8060c12c6ad838e754"
+
+[[package]]
+name = "iyes_loopless"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fec251a82c60be9e282aec12056fa153666d5730b21d124655d7c22114d342c8"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_time",
+ "bevy_utils",
+]
 
 [[package]]
 name = "jni-sys"

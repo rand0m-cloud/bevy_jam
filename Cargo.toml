@@ -14,5 +14,5 @@ crate-type = ["cdylib"]
 [dependencies]
 gdnative = "0.10"
 bevy = {version = "0.8", default-features = false}
-bevy_godot = {git = "https://github.com/rand0m-cloud/bevy_godot", branch = "0.2-rc"}
+bevy_godot = {git = "https://github.com/rand0m-cloud/bevy_godot", branch = "0.2"}
 bevy_asset_loader = "0.12.0"

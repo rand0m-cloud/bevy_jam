@@ -33,11 +33,9 @@ fn move_player(mut player: Query<(&Player, &mut Transform2D)>, time: Res<Time>) 
     let move_input = move_backward - move_forward;
     let rotate_input = rotate_right - rotate_left;
 
-    player_transform.origin = player_transform.basis_xform(Vector2::new(move_input as f32, 0.0))
-        * 50.0
-        * time.delta_seconds()
-        + player_transform.origin;
+    player_transform.origin =
+        player_transform.xform(Vector2::new(0.0, move_input as f32) * 50.0 * time.delta_seconds());
 
     let rotation = player_transform.rotation();
-    player_transform.set_rotation(rotate_input as f32 * 0.5 * time.delta_seconds() + rotation);
+    player_transform.set_rotation(rotate_input as f32 * 1.5 * time.delta_seconds() + rotation);
 }

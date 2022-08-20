@@ -22,12 +22,13 @@
           pkgs.libclang.lib
           pkgs.godot
         ];
-        nativeBuildInputs = [];
+        nativeBuildInputs = [
+          pkgs.rustPlatform.bindgenHook
+        ];
       in
       with pkgs;
       {
         devShell = mkShell {
-          LIBCLANG_PATH = "${llvmPackages.libclang.lib}/lib";
           inherit buildInputs nativeBuildInputs;
           packages = [ rust-analyzer ];
         };

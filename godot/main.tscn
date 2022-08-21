@@ -11,17 +11,17 @@
 [node name="Player" parent="." instance=ExtResource( 1 )]
 
 [node name="Zombie3" parent="." instance=ExtResource( 2 )]
-position = Vector2( 0, 200 )
+position = Vector2( 10, 1460 )
 rotation = 4.71239
 
 [node name="Zombie4" parent="." instance=ExtResource( 2 )]
-position = Vector2( 200, 0 )
+position = Vector2( 1578, -133 )
 rotation = 4.71239
 
 [node name="Zombie6" parent="." instance=ExtResource( 2 )]
-position = Vector2( 0, -200 )
+position = Vector2( 5, -1369 )
 rotation = 4.71239
 
 [node name="Zombie5" parent="." instance=ExtResource( 2 )]
-position = Vector2( -200, 0 )
+position = Vector2( -1316, 90 )
 rotation = 4.71239

@@ -1,9 +1,11 @@
 use std::f32::consts::PI;
 
-use crate::{player::Player, Hp};
-use bevy::prelude::*;
+use crate::{
+    player::Player,
+    Hp,
+};
 use bevy_godot::prelude::{
-    bevy_prelude::{Added, With},
+    bevy_prelude::*,
     godot_prelude::Vector2,
     *,
 };
@@ -14,7 +16,8 @@ impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(label_zombies)
             .add_system(zombies_move.as_physics_system())
-            .add_system(kill_zombies.as_physics_system());
+            .add_system(kill_zombies.as_physics_system())
+            .add_system(zombie_targeting.as_physics_system());
     }
 }
 
@@ -69,6 +72,22 @@ fn zombies_move(
 
         // Move forward
         zombie.origin = zombie.xform(Vector2::new(0., -1.) * 30.0 * delta);
+    }
+}
+
+fn zombie_targeting(
+    mut zombies: Query<(&Transform2D, &mut Target), With<Zombie>>,
+    player: Query<&Transform2D, With<Player>>,
+) {
+    for (zombie, mut target) in zombies.iter_mut() {
+        let player = player.single();
+        if zombie.origin.distance_to(player.origin) < 500.0 {
+            *target = Target(player.origin);
+        }
+        else if zombie.origin.distance_to(target.0) < 200.0 {
+            // TODO: Make the new random close to the current zombie position
+            *target = Target::random();
+        }
     }
 }
 

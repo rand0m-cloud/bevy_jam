@@ -12,3 +12,9 @@
 
 [node name="Zombie" parent="." instance=ExtResource( 2 )]
 position = Vector2( 200, 0 )
+
+[node name="Zombie2" parent="." instance=ExtResource( 2 )]
+position = Vector2( -200, 0 )
+
+[node name="Zombie3" parent="." instance=ExtResource( 2 )]
+position = Vector2( 0, 200 )

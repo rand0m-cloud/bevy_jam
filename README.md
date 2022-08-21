@@ -26,13 +26,12 @@ You will die if:
 
 You start with 100% hydration. It drops over time. The rate of dehydration depends on your circumstances.
 
-| Circumstance           | Dehydration rate |
-|                        | (pp / minute)    |
-|------------------------|------------------|
-| In the shelter         | 1                |
-| Standing in the desert | 2                |
-| Walking in the desert  | 3                |
-| Running in the desert  | 5                |
+| Circumstance           | Dehydration rate (pp / minute) |
+|------------------------|--------------------------------|
+| In the shelter         | 1                              |
+| Standing in the desert | 2                              |
+| Walking in the desert  | 3                              |
+| Running in the desert  | 5                              |
 
 If the hydration level is below 60% and there is a bottle of water around (in the crate, in your backpack or in the shelter), you will automatically drink it and restore 30 pp of hydration. So if venturing in the desert make sure to bring some water with you... and bring some more back to your shelter.
 
@@ -43,13 +42,12 @@ You can survive without food a bit longer, but eventually starvation will kill y
 
 You start with 100% nutrition. It drops over time. The rate of starvation depends on your circumstances.
 
-| Circumstance           | Starvation rate |
-|                        | (pp / minute)   |
-|------------------------|-----------------|
-| In the shelter         | 0.5             |
-| Standing in the desert | 0.5             |
-| Walking in the desert  | 1               |
-| Running in the desert  | 2               |
+| Circumstance           | Starvation rate (pp / minute) |
+|------------------------|-------------------------------|
+| In the shelter         | 0.5                           |
+| Standing in the desert | 0.5                           |
+| Walking in the desert  | 1                             |
+| Running in the desert  | 2                             |
 
 If the nutrition level is below 60% and there is a food ratio (in the crate, in your backpack or in the shelter), you will automatically eat it and restore 30 pp of nutrition. 
 
@@ -60,32 +58,30 @@ The zombies in the desert are rather stupid, but they make up for it with their 
 
 They are not very fast and you can out outrun them. Just don't get surrounded! Here is how fast things go:
 
-| What           | How fast |
-|                | (km / h) |
-|----------------|----------|
-| Player walking | 5        |
-| Player running | 12       |
-| Zombie walking | 3        |
-| Zombie running | 9        |
+| What           | How fast (km / h) |
+|----------------|-------------------|
+| Player walking | 5                 |
+| Player running | 12                |
+| Zombie walking | 3                 |
+| Zombie running | 9                 |
 
 
 If a zombie gets closer than 1m to you it will bite with a 60% chance of infecting you. Infection is worse than death. Game over!
 
 So you might think it's easy to stay out of their way or just outrun the zombies. Well, the problem is that zombies are attracted to noise. So be quite! But then another problem is that an excited zombie roars. And they get excited whenever they see you (you sexy thing) or when you hit them without immediate kill (see the Fighting Zombies section later). That means, that triggering one zombie will likely attract a whole lotta' more. It's really best to avoid them at all cost.
 
-| Noise               | Base level          |
-|                     | (dB at 1m distance) |
-|---------------------|---------------------|
-| Player walking      | 20                  |
-| Player running      | 50                  |
-| Shooting a crossbow | 40                  |
-| Opening a crate     | 50                  |
-| Drinking water      | 30                  |
-| Eating food         | 30                  |
-| Bomb explosion      | 200                 |
-| Drone flying        | 150                 |
-| Zombie roaring      | 100                 |
-| Buzzer ringing      | 80                  |
+| Noise               | Base level (dB at 1m distance) |
+|---------------------|--------------------------------|
+| Player walking      | 20                             |
+| Player running      | 50                             |
+| Shooting a crossbow | 40                             |
+| Opening a crate     | 50                             |
+| Drinking water      | 30                             |
+| Eating food         | 30                             |
+| Bomb explosion      | 200                            |
+| Drone flying        | 150                            |
+| Zombie roaring      | 100                            |
+| Buzzer ringing      | 80                             |
 
 
 The sound level drops by 6 dB per doubling of distance (sound level = base level - 6 dB * sqrt(distance)). Zombies can hear sounds louder than 5 dB and will go toward the loudest sound they heard, until they hear something louder, reach the source of noise or spot the player. Examples:

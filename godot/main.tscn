@@ -13,3 +13,15 @@
 [node name="Zombie3" parent="." instance=ExtResource( 2 )]
 position = Vector2( 0, 200 )
 rotation = 4.71239
+
+[node name="Zombie4" parent="." instance=ExtResource( 2 )]
+position = Vector2( 200, 0 )
+rotation = 4.71239
+
+[node name="Zombie6" parent="." instance=ExtResource( 2 )]
+position = Vector2( 0, -200 )
+rotation = 4.71239
+
+[node name="Zombie5" parent="." instance=ExtResource( 2 )]
+position = Vector2( -200, 0 )
+rotation = 4.71239

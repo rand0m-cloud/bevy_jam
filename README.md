@@ -25,3 +25,66 @@
  - Gameover
    - Zombies can strike you
    - Runs out of water or food
+
+# Crafting system
+
+Airdrop items:
+
+- Electronic components
+- Battery pack
+- Mechanical components
+- Fuel
+- Water
+- Food
+- Explosive
+- Wood (always, crate is made of wood)
+
+Player can carry items to the shelter, where they have a workshop. Combining items produces new items:
+
+## Flying drone
+
+Can pick up, carry and drop one other object. Battery lasts for 1 minute (empty) or 30s with an object.
+
+electronics + battery + mechanical components
+
+## Buzzer
+
+After 10s timeout makes noise for 1 minute. Then the battery dies out.
+
+electronics + battery
+
+## Proximity bomb
+
+electronics + battery + explosive
+
+## Fragmentation bomb
+
+proximity bomb + mechanical components
+
+## Incendiary device
+
+When exploded or on fire, sets other nearby object on fire. Doesn't explode on it's own. Has to be placed next to a bomb. Can cause a chain reaction if multiple placed close by.
+
+fuel + explosive
+
+## Crossbow
+
+wooden parts + mechanical parts
+
+## Bolts
+
+Set of 12.
+
+wooden parts + mechanical parts
+
+## Sentry tower
+
+Detects movement and notifies the player.
+
+wooden parts + electronics + battery
+
+## Defense tower
+
+Shoots zombies. Can run out of bolts.
+
+sentry tower + crossbow + bolts

@@ -376,6 +376,7 @@ dependencies = [
  "bevy_asset_loader",
  "bevy_godot",
  "gdnative",
+ "iyes_loopless",
  "rand",
 ]
 

@@ -1,9 +1,6 @@
 use std::f32::consts::PI;
 
-use crate::{
-    player::{self, Player},
-    Hp,
-};
+use crate::{player::Player, Hp};
 use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
 use rand::prelude::*;
 
@@ -13,6 +10,7 @@ impl Plugin for ZombiesPlugin {
         app.insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
             .add_system(spawn_zombies.as_physics_system())
             .add_system(zombies_move.as_physics_system())
+            .add_system(despawn_faraway_zombies.as_physics_system())
             .add_system(kill_zombies.as_physics_system())
             .add_system(zombie_targeting.as_physics_system());
     }
@@ -52,28 +50,47 @@ fn spawn_zombies(
     timer.0.tick(time.delta());
 
     if timer.0.just_finished() {
-
         // Limit spawning rate if population is large
         let population_target = 200.0;
         let actual_population = zombies.iter().count() as f32;
         let probability = population_target / 100.0 / actual_population.sqrt();
         debug!("Current population is {actual_population}");
-        if random::<f32>() > probability { return };
+        if random::<f32>() > probability {
+            return;
+        };
 
         // Spawn new zombie away from the player
         let player = player.single();
         let origin = player.origin + random_displacement(2000, 3000);
-
 
         debug!("Spawning at {origin:?}");
         commands
             .spawn()
             .insert(GodotScene::from_path("res://Zombie.tscn"))
             .insert(Zombie)
+            .insert(Hp(10.0))
             .insert(Target::random(origin))
             .insert(Transform2D(
                 GodotTransform2D::from_rotation_translation_scale(origin, 0.0, Vector2::ONE),
             ));
+    }
+}
+
+fn despawn_faraway_zombies(
+    player: Query<&Transform2D, With<Player>>,
+    mut zombies: Query<(&Transform2D, &mut ErasedGodotRef), With<Zombie>>,
+) {
+    let player = player.single();
+    for (transform, mut zombie) in zombies.iter_mut() {
+        let distance = transform.origin.distance_to(player.origin);
+        if distance > 4000.0 {
+            debug!(
+                "{:?} is too far from {:?} ({:?}). Despawning.",
+                transform.origin, player.origin, distance
+            );
+            let zombie = zombie.get::<Node>();
+            zombie.queue_free();
+        }
     }
 }
 

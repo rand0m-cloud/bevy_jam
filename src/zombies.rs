@@ -8,6 +8,7 @@ pub struct ZombiesPlugin;
 impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SpawnTimer(Timer::from_seconds(10.0, true)))
+            .add_startup_system(populate)
             .add_system(spawn_zombies.as_physics_system())
             .add_system(zombies_move.as_physics_system())
             .add_system(despawn_faraway_zombies.as_physics_system())
@@ -40,6 +41,24 @@ fn random_displacement(min_distance: u32, max_distance: u32) -> Vector2 {
     Vector2::UP.rotated(direction) * distance
 }
 
+fn populate(mut commands: Commands)  {
+    for _ in 1..100 {
+        let origin = random_displacement(500, 10000);
+
+        // TODO: spawn_zombie(commands, origin);
+        debug!("Spawning at {origin:?}");
+        commands
+            .spawn()
+            .insert(GodotScene::from_path("res://Zombie.tscn"))
+            .insert(Zombie)
+            .insert(Hp(10.0))
+            .insert(Target::random(origin))
+            .insert(Transform2D(
+                GodotTransform2D::from_rotation_translation_scale(origin, 0.0, Vector2::ONE),
+            ));
+    }
+}
+
 fn spawn_zombies(
     mut commands: Commands,
     player: Query<&Transform2D, With<Player>>,
@@ -61,8 +80,9 @@ fn spawn_zombies(
 
         // Spawn new zombie away from the player
         let player = player.single();
-        let origin = player.origin + random_displacement(10000, 50000);
+        let origin = player.origin + random_displacement(5000, 10000);
 
+        // TODO: spawn_zombie(commands, origin);
         debug!("Spawning at {origin:?}");
         commands
             .spawn()
@@ -76,6 +96,19 @@ fn spawn_zombies(
     }
 }
 
+fn spawn_zombie(mut commands: Commands, origin: Vector2)  {
+    debug!("Spawning at {origin:?}");
+    commands
+        .spawn()
+        .insert(GodotScene::from_path("res://Zombie.tscn"))
+        .insert(Zombie)
+        .insert(Hp(10.0))
+        .insert(Target::random(origin))
+        .insert(Transform2D(
+            GodotTransform2D::from_rotation_translation_scale(origin, 0.0, Vector2::ONE),
+        ));
+}
+
 fn despawn_faraway_zombies(
     player: Query<&Transform2D, With<Player>>,
     mut zombies: Query<(&Transform2D, &mut ErasedGodotRef), With<Zombie>>,
@@ -83,7 +116,7 @@ fn despawn_faraway_zombies(
     let player = player.single();
     for (transform, mut zombie) in zombies.iter_mut() {
         let distance = transform.origin.distance_to(player.origin);
-        if distance > 60000.0 {
+        if distance > 12000.0 {
             debug!(
                 "{:?} is too far from {:?} ({:?}). Despawning.",
                 transform.origin, player.origin, distance

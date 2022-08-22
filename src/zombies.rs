@@ -1,20 +1,14 @@
 use std::f32::consts::PI;
 
-use crate::{
-    player::Player,
-    Hp,
-};
-use bevy_godot::prelude::{
-    bevy_prelude::*,
-    godot_prelude::Vector2,
-    *,
-};
+use crate::{player::Player, Hp};
+use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
 use rand::prelude::*;
 
 pub struct ZombiesPlugin;
 impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(label_zombies)
+            .add_startup_system(spawn_zombies)
             .add_system(zombies_move.as_physics_system())
             .add_system(kill_zombies.as_physics_system())
             .add_system(zombie_targeting.as_physics_system());
@@ -36,6 +30,21 @@ impl Target {
         let vector = Vector2::UP.rotated(direction) * distance;
         Self(vector)
     }
+}
+
+fn spawn_zombies(mut commands: Commands) {
+    commands
+        .spawn()
+        .insert(GodotScene::from_path("res://Zombie.tscn"))
+        .insert(Zombie)
+        .insert(Target::random())
+        .insert(Transform2D(
+            GodotTransform2D::from_rotation_translation_scale(
+                Vector2 { x: 0.0, y: -200.0 },
+                0.0,
+                Vector2::ONE,
+            ),
+        ));
 }
 
 fn label_zombies(
@@ -83,8 +92,7 @@ fn zombie_targeting(
         let player = player.single();
         if zombie.origin.distance_to(player.origin) < 500.0 {
             *target = Target(player.origin);
-        }
-        else if zombie.origin.distance_to(target.0) < 200.0 {
+        } else if zombie.origin.distance_to(target.0) < 200.0 {
             // TODO: Make the new random close to the current zombie position
             *target = Target::random();
         }

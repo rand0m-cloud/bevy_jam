@@ -7,7 +7,7 @@ use rand::prelude::*;
 pub struct ZombiesPlugin;
 impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
+        app.insert_resource(SpawnTimer(Timer::from_seconds(10.0, true)))
             .add_system(spawn_zombies.as_physics_system())
             .add_system(zombies_move.as_physics_system())
             .add_system(despawn_faraway_zombies.as_physics_system())

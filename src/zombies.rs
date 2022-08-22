@@ -45,15 +45,27 @@ fn random_displacement(min_distance: u32, max_distance: u32) -> Vector2 {
 fn spawn_zombies(
     mut commands: Commands,
     player: Query<&Transform2D, With<Player>>,
+    zombies: Query<(), With<Zombie>>,
     mut timer: ResMut<SpawnTimer>,
     time: Res<Time>,
 ) {
     timer.0.tick(time.delta());
 
     if timer.0.just_finished() {
+
+        // Limit spawning rate if population is large
+        let population_target = 200.0;
+        let actual_population = zombies.iter().count() as f32;
+        let probability = population_target / 100.0 / actual_population.sqrt();
+        debug!("Current population is {actual_population}");
+        if random::<f32>() > probability { return };
+
+        // Spawn new zombie away from the player
         let player = player.single();
         let origin = player.origin + random_displacement(2000, 3000);
 
+
+        debug!("Spawning at {origin:?}");
         commands
             .spawn()
             .insert(GodotScene::from_path("res://Zombie.tscn"))

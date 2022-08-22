@@ -3,7 +3,7 @@
 [ext_resource path="res://icon.png" type="Texture" id=1]
 
 [sub_resource type="CircleShape2D" id=1]
-radius = 82
+radius = 82.0
 
 [node name="Player" type="Node2D"]
 modulate = Color( 1, 1, 1, 0.784314 )
@@ -11,6 +11,7 @@ modulate = Color( 1, 1, 1, 0.784314 )
 [node name="Camera2D" type="Camera2D" parent="."]
 rotating = true
 current = true
+zoom = Vector2( 4, 4 )
 
 [node name="Icon" type="Sprite" parent="."]
 texture = ExtResource( 1 )

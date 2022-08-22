@@ -8,7 +8,8 @@ pub struct ZombiesPlugin;
 impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
         app.add_system(label_zombies)
-            .add_startup_system(spawn_zombies)
+            .insert_resource(SpawnTimer(Timer::from_seconds(10.0, true)))
+            .add_system(spawn_zombies.as_physics_system())
             .add_system(zombies_move.as_physics_system())
             .add_system(kill_zombies.as_physics_system())
             .add_system(zombie_targeting.as_physics_system());
@@ -17,6 +18,8 @@ impl Plugin for ZombiesPlugin {
 
 #[derive(Debug, Component)]
 pub struct Zombie;
+
+struct SpawnTimer(Timer);
 
 // A target represents a point where a zombie wants to be
 #[derive(Debug, Component)]
@@ -32,19 +35,23 @@ impl Target {
     }
 }
 
-fn spawn_zombies(mut commands: Commands) {
-    commands
-        .spawn()
-        .insert(GodotScene::from_path("res://Zombie.tscn"))
-        .insert(Zombie)
-        .insert(Target::random())
-        .insert(Transform2D(
-            GodotTransform2D::from_rotation_translation_scale(
-                Vector2 { x: 0.0, y: -200.0 },
-                0.0,
-                Vector2::ONE,
-            ),
-        ));
+fn spawn_zombies(mut commands: Commands, mut timer: ResMut<SpawnTimer>, time: Res<Time>) {
+    timer.0.tick(time.delta());
+
+    if timer.0.just_finished() {
+        commands
+            .spawn()
+            .insert(GodotScene::from_path("res://Zombie.tscn"))
+            .insert(Zombie)
+            .insert(Target::random())
+            .insert(Transform2D(
+                GodotTransform2D::from_rotation_translation_scale(
+                    Vector2 { x: 0.0, y: -200.0 },
+                    0.0,
+                    Vector2::ONE,
+                ),
+            ));
+    }
 }
 
 fn label_zombies(

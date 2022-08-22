@@ -29,7 +29,7 @@ impl Target {
     fn random() -> Self {
         let mut rng = thread_rng();
         let distance = rng.gen_range(100.0..1000.0);
-        let direction = rng.gen_range(0.0..PI);
+        let direction = rng.gen_range(0.0..(2.0 * PI));
         let vector = Vector2::UP.rotated(direction) * distance;
         Self(vector)
     }

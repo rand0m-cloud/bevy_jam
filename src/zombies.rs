@@ -61,7 +61,7 @@ fn spawn_zombies(
 
         // Spawn new zombie away from the player
         let player = player.single();
-        let origin = player.origin + random_displacement(2000, 3000);
+        let origin = player.origin + random_displacement(10000, 50000);
 
         debug!("Spawning at {origin:?}");
         commands
@@ -83,7 +83,7 @@ fn despawn_faraway_zombies(
     let player = player.single();
     for (transform, mut zombie) in zombies.iter_mut() {
         let distance = transform.origin.distance_to(player.origin);
-        if distance > 4000.0 {
+        if distance > 60000.0 {
             debug!(
                 "{:?} is too far from {:?} ({:?}). Despawning.",
                 transform.origin, player.origin, distance

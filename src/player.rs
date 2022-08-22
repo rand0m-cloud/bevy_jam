@@ -22,6 +22,9 @@ impl Plugin for PlayerPlugin {
 pub struct Player;
 
 #[derive(Debug, Component)]
+pub struct PlayerInteractVolume;
+
+#[derive(Debug, Component)]
 pub struct Bullet;
 
 fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
@@ -31,6 +34,14 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
         .unwrap();
 
     commands.entity(player_ent).insert(Player);
+
+    let player_interact_ent = entities
+        .iter()
+        .find_map(|(name, ent)| (name.as_str() == "InteractVolume").then_some(ent))
+        .unwrap();
+    commands
+        .entity(player_interact_ent)
+        .insert(PlayerInteractVolume);
 }
 
 fn move_player(mut player: Query<(&Player, &mut Transform2D)>, mut time: SystemDelta) {

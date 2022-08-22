@@ -88,3 +88,38 @@ wooden parts + electronics + battery
 Shoots zombies. Can run out of bolts.
 
 sentry tower + crossbow + bolts
+
+
+## Development tasks
+
+- [ ] Game states
+  - [x] Running in the desert
+  - [ ] Sheltering 
+  - [ ] Paused
+  - [ ] Game over (killed)
+  - [ ] Game over (win)
+  
+- [ ] Design document
+
+- [ ] Graphics
+  - [ ] Ground texture
+  - [ ] Player
+  - [ ] Zombie
+  - [ ] Bolt
+  - [ ] Crate
+    - [ ] Parachute
+  - [ ] Bomb
+  - [ ] Sentry tower
+  - [ ] Defense tower
+  - [ ] Incendiary device
+  - [ ] Explosion
+  - [ ] Flame
+  - [ ] Drone
+  
+- [ ] Crafting system
+- [ ] Items in crates
+- [ ] Items in shelter
+- [ ] Items in backpack
+- [ ] Zombie attack
+- [ ] Sounds
+- [ ] Zombie hearing

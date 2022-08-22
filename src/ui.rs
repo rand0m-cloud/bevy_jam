@@ -49,12 +49,14 @@ fn label_game_over_screen(mut commands: Commands, entities: Query<(&Name, Entity
 }
 
 fn show_game_over_screen(mut screen: Query<&mut ErasedGodotRef, With<GameOverScreen>>) {
+    debug!("Showing game over.");
     let mut screen = screen.single_mut();
     let screen = screen.get::<Control>();
     screen.set_visible(true)
 }
 
 fn hide_game_over_screen(mut screen: Query<&mut ErasedGodotRef, With<GameOverScreen>>) {
+    debug!("Hiding game over.");
     let mut screen = screen.single_mut();
     let screen = screen.get::<Control>();
     screen.set_visible(false)

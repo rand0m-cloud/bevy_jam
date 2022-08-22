@@ -1,7 +1,8 @@
 use std::f32::consts::PI;
 
-use crate::{player::Player, Hp};
+use crate::{player::{Player, PlayerInteractVolume}, Hp, GameState};
 use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
+use iyes_loopless::prelude::*;
 use rand::prelude::*;
 
 pub struct ZombiesPlugin;
@@ -9,6 +10,7 @@ impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(SpawnTimer(Timer::from_seconds(10.0, true)))
             .add_startup_system(populate)
+            .add_system(zombie_bites.run_in_state(GameState::Playing))
             .add_system(spawn_zombies.as_physics_system())
             .add_system(zombies_move.as_physics_system())
             .add_system(despawn_faraway_zombies.as_physics_system())
@@ -168,6 +170,23 @@ fn kill_zombies(mut zombies: Query<(&Hp, &mut ErasedGodotRef), With<Zombie>>) {
         if hp.0 <= 0.0 {
             let zombie = zombie.get::<Node>();
             zombie.queue_free();
+        }
+    }
+}
+
+fn zombie_bites(
+    player_interact_volume: Query<&Collisions, With<PlayerInteractVolume>>,
+    zombies: Query<(), With<Zombie>>,
+    mut commands: Commands,
+) {
+    let player_interact_volume = player_interact_volume.single();
+
+    for ent in player_interact_volume.recent_collisions() {
+        if zombies.get(*ent).is_ok() {
+            commands.insert_resource(NextState(GameState::GameOver));
+            debug!("You got bitten!");
+            // FIXME: Somehow at the beginnig of the game player get's bitten 100 times!
+            // TODO: break
         }
     }
 }

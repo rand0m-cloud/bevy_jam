@@ -1,14 +1,16 @@
 use std::f32::consts::PI;
 
-use crate::{player::Player, Hp};
+use crate::{
+    player::{self, Player},
+    Hp,
+};
 use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
 use rand::prelude::*;
 
 pub struct ZombiesPlugin;
 impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(label_zombies)
-            .insert_resource(SpawnTimer(Timer::from_seconds(10.0, true)))
+        app.insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
             .add_system(spawn_zombies.as_physics_system())
             .add_system(zombies_move.as_physics_system())
             .add_system(kill_zombies.as_physics_system())
@@ -26,46 +28,40 @@ struct SpawnTimer(Timer);
 struct Target(Vector2);
 
 impl Target {
-    fn random() -> Self {
-        let mut rng = thread_rng();
-        let distance = rng.gen_range(100.0..1000.0);
-        let direction = rng.gen_range(0.0..(2.0 * PI));
-        let vector = Vector2::UP.rotated(direction) * distance;
-        Self(vector)
+    fn random(origin: Vector2) -> Self {
+        let vector = random_displacement(100, 1000);
+        Self(vector + origin)
     }
 }
 
-fn spawn_zombies(mut commands: Commands, mut timer: ResMut<SpawnTimer>, time: Res<Time>) {
+fn random_displacement(min_distance: u32, max_distance: u32) -> Vector2 {
+    let mut rng = thread_rng();
+    let range = (min_distance as f32)..(max_distance as f32);
+    let distance = rng.gen_range(range);
+    let direction = rng.gen_range(0.0..(2.0 * PI));
+    Vector2::UP.rotated(direction) * distance
+}
+
+fn spawn_zombies(
+    mut commands: Commands,
+    player: Query<&Transform2D, With<Player>>,
+    mut timer: ResMut<SpawnTimer>,
+    time: Res<Time>,
+) {
     timer.0.tick(time.delta());
 
     if timer.0.just_finished() {
+        let player = player.single();
+        let origin = player.origin + random_displacement(2000, 3000);
+
         commands
             .spawn()
             .insert(GodotScene::from_path("res://Zombie.tscn"))
             .insert(Zombie)
-            .insert(Target::random())
+            .insert(Target::random(origin))
             .insert(Transform2D(
-                GodotTransform2D::from_rotation_translation_scale(
-                    Vector2 { x: 0.0, y: -200.0 },
-                    0.0,
-                    Vector2::ONE,
-                ),
+                GodotTransform2D::from_rotation_translation_scale(origin, 0.0, Vector2::ONE),
             ));
-    }
-}
-
-fn label_zombies(
-    mut commands: Commands,
-    entities: Query<(&Groups, Entity), Added<ErasedGodotRef>>,
-) {
-    for (groups, ent) in entities.iter() {
-        if groups.is("zombie") {
-            commands
-                .entity(ent)
-                .insert(Zombie)
-                .insert(Hp(10.0))
-                .insert(Target::random());
-        }
     }
 }
 
@@ -100,8 +96,7 @@ fn zombie_targeting(
         if zombie.origin.distance_to(player.origin) < 500.0 {
             *target = Target(player.origin);
         } else if zombie.origin.distance_to(target.0) < 200.0 {
-            // TODO: Make the new random close to the current zombie position
-            *target = Target::random();
+            *target = Target::random(zombie.origin);
         }
     }
 }

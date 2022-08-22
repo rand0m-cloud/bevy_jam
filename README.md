@@ -99,6 +99,9 @@ sentry tower + crossbow + bolts
   - [ ] Game over (killed)
   - [ ] Game over (win)
   
+- [ ] Make zombies movement backed by physics system
+- [ ] Make player movement backed by physics system
+
 - [ ] Design document
 
 - [ ] Graphics

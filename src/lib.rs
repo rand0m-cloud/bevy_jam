@@ -26,5 +26,6 @@ pub struct Hp(f32);
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
     Playing,
+    Sheltered,
     GameOver,
 }

@@ -4,9 +4,9 @@ use iyes_loopless::prelude::*;
 
 use crate::GameState;
 
-pub struct UiPlugin;
+pub struct GameOverUiPlugin;
 
-impl Plugin for UiPlugin {
+impl Plugin for GameOverUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(connect_game_over_button)
             .add_startup_system(label_game_over_screen)

@@ -1,6 +1,7 @@
 use crate::player::PlayerInteractVolume;
 use bevy_godot::prelude::{
     bevy_prelude::{Added, With, Without},
+    godot_prelude::Vector2,
     *,
 };
 
@@ -66,21 +67,24 @@ fn airdrop_indicator(
 
         let mut airdrop_screen_origin = reference.get_global_transform_with_canvas().origin;
 
-        if (airdrop_screen_origin.x <= 0.0 || airdrop_screen_origin.x >= 1280.0)
-            || (airdrop_screen_origin.y <= 0.0 || airdrop_screen_origin.y >= 720.0)
+        let screen_size = Vector2::new(1280.0, 720.0);
+        if (airdrop_screen_origin.x <= 0.0 || airdrop_screen_origin.x >= screen_size.x)
+            || (airdrop_screen_origin.y <= 0.0 || airdrop_screen_origin.y >= screen_size.y)
         {
             indicator.set_visible(true);
 
+            let offset = 40.0;
+
             if airdrop_screen_origin.x <= 0.0 {
-                airdrop_screen_origin.x = 10.0;
-            } else if airdrop_screen_origin.x >= 1280.0 {
-                airdrop_screen_origin.x = 1270.0;
+                airdrop_screen_origin.x = offset;
+            } else if airdrop_screen_origin.x >= screen_size.x {
+                airdrop_screen_origin.x = screen_size.x - offset;
             }
 
             if airdrop_screen_origin.y <= 0.0 {
-                airdrop_screen_origin.y = 10.0;
-            } else if airdrop_screen_origin.y >= 720.0 {
-                airdrop_screen_origin.y = 710.0;
+                airdrop_screen_origin.y = offset;
+            } else if airdrop_screen_origin.y >= screen_size.y {
+                airdrop_screen_origin.y = screen_size.y - offset;
             }
 
             indicator_transform.0 = GodotTransform2D::IDENTITY.translated(airdrop_screen_origin);

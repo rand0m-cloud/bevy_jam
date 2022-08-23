@@ -1,10 +1,21 @@
-[gd_scene load_steps=2 format=2]
+[gd_scene load_steps=3 format=2]
 
-[ext_resource path="res://icon.png" type="Texture" id=1]
+[sub_resource type="OpenSimplexNoise" id=1]
+octaves = 7
+period = 77.5
+persistence = 1.0
+
+[sub_resource type="NoiseTexture" id=2]
+width = 1024
+height = 1024
+seamless = true
+noise = SubResource( 1 )
 
 [node name="Level" type="Node2D"]
 
 [node name="Icon" type="Sprite" parent="."]
-modulate = Color( 1, 1, 1, 0.156863 )
+modulate = Color( 0.729412, 0.537255, 0.160784, 1 )
 scale = Vector2( 20, 20 )
-texture = ExtResource( 1 )
+texture = SubResource( 2 )
+region_enabled = true
+region_rect = Rect2( 0, 0, 30720, 30720 )

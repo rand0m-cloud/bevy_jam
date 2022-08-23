@@ -104,9 +104,84 @@ TODO: Explosions and flames
 TODO: Moving around in the desert, carrying capacity, actions, map, compass
 
 
+## Character control
+
+When in the desert, the player character can:
+
+  - Walk
+  - Run
+  - Duck (when not moving, they are ducking)
+  - Look around / aim
+  - Throw items or shoot (depending on item held)
+  - Use items (place bombs, turrets)
+  - Look at the map
+  - Interact with objects in the environment (open crates, pick stuff up, enter shelter, etc.)
+  
+The character is controlled with mouse and keyboard.
+
+> TODO: Game controller support
+
+> TODO: Touch screen support
+
+
+### Moving around
+
+Click to set target to walk to. If the character was ducking, they will first turn toward the target and then start walking. Changing the target while walking will result in smooth turn.
+
+Double click to run. Same as walking, but faster and makes more noise.
+
+Once the target is reached, the character will stop and duck.
+
+Press <kbd>space</kbd> to stop and duck or resume movement toward the target.
+
+
+### Inventory and airdrop crates
+
+The player can carry up to 5 items in their backpack. Items can be selected with numerical keys <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd> or <kbd>5</kbd>. Selected item will be held in hand and can be used (some of them) <kbd>u</kbd>, dropped <kbd>d</kbd> or thrown (see aiming below).
+
+Dropped items will remain on the ground as long as player is close by. If moved away and lost from sight they will be lost in the sand forever. So better use crates to store useful stuff for later.
+
+Next to an airdrop crate press <kbd>o</kbd> to open it. A crate can contain up to five items. Items can be removed or stored in the crate. Crates and items in them never disappear and are visible on the map. Using crates is an important element of the strategy.
+
+Items from an open crate can be picked using keys <kbd>6</kbd>, <kbd>7</kbd>, <kbd>8</kbd>, <kbd>9</kbd> or <kbd>0</kbd>. If there is space left in the backpack, picked item will be immediately stored there. If not, player will be prompted to chose one item from the backpack to swap with the picked item.
+
+Items from the backpack can be stored in an open crate the same way. First pick an item from the backpack. If the crate is full, select item to swap.
+
+Performing any action other than exchanging items will result in crate getting closed. Press <kbd>o</kbd> again to open it.
+
+Press <kbd>w</kbd> to take the crate apart for wood. If there were any items in the crate, they will be dropped on the ground. After selecting a wood item from the backpack it can be used <kbd>u</kbd> to assemble the crate back. This way crates can be moved around and placed more strategically.
+
+When standing in front of an item dropped to the ground, press <kbd>p</kbd> to pick it up and place it in the backpack. If the backpack is full, one item will have to be swapped.
+
+
+### Looking around, aiming, throwing and shooting
+
+Right click to stop and turn toward point. Hold for aiming. While aiming the distance to the target is displayed. The camera follows a midpoint between the target and the player, so it's possible to observe wider area around.
+
+Left click while aiming (i.e. holding the RMB) to throw or shoot. This can be useful for making noise and drawing zombies away or killing them.
+
+Any item can be throws and if it hits a zombie, there is a chance of killing it. The chance is very small, so do it only if you are absolutely desperate.
+
+When holding a crossbow you can shoot bolts. They have a slightly better chance of killing a zombie, but it's still very risky. If you run out of bolts, you will throw the crossbow. Good luck with that.
+
+
+### Map
+
+The player has a map, accessible with <kbd>m</kbd>. This will zoom the view out a lot and rotate it so that the north is on top. On the map your position is marked, along with all the shelters and crates. If you discovered the contents of a crate or a shelter, you can see the inventory by hovering the mouse on it. Also the sentry and defense turrets will be marked, along with their status (red if zombies are around). Also the bombs you placed in the desert etc. Zombies are not visible in the map.
+
+While looking at the map the player is ducking. The time goes on and so are zombies, so make sure you are safe. Best look at it in the shelter.
+
+
+## Sheltering
+
+In the desert they are underground shelters. You start in one of them, but if you venture far, you can find others. Enter or exit the shelter with <kbd>e</kbd>. Inside shelter you can store items from the backpack and craft new items.
+
+While in the shelter you are perfectly safe... except from hunger and dehydration. But if there are zombies roaming around, better stay inside.
+
+
 ## Crafting system
 
-Airdrop items:
+A crate from an airdrop will contain 3 random items. They can be:
 
 - Electronic components
 - Battery pack
@@ -115,9 +190,11 @@ Airdrop items:
 - Water
 - Food
 - Explosive
-- Wood (always, crate is made of wood)
 
-Player can carry items to the shelter, where they have a workshop. Combining items produces new items:
+Crate itself can be disassembled for wood.
+
+Player can carry items to the shelter, where they have a workshop. Combining items produces new items.
+
 
 ### Flying drone
 

@@ -5,8 +5,8 @@ use iyes_loopless::prelude::*;
 
 mod airdrops;
 mod player;
-mod zombies;
 mod ui;
+mod zombies;
 
 fn init(_handle: &InitHandle) {}
 
@@ -16,7 +16,6 @@ fn build_app(app: &mut App) {
         .add_plugin(zombies::ZombiesPlugin)
         .add_plugin(airdrops::AirDropsPlugin)
         .add_plugin(ui::UiPlugin);
-
 }
 
 bevy_godot_init!(init, build_app);
@@ -27,5 +26,5 @@ pub struct Hp(f32);
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
     Playing,
-    GameOver
+    GameOver,
 }

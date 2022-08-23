@@ -1,19 +1,27 @@
-use crate::{zombies::Zombie, GameState};
 use crate::Hp;
+use crate::{zombies::Zombie, GameState};
 use bevy_godot::prelude::{
     bevy_prelude::{Added, With},
     godot_prelude::Vector2,
     *,
 };
-use std::f32::consts::PI;
 use iyes_loopless::prelude::*;
+use std::f32::consts::PI;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(label_player)
-            .add_system(move_player.as_physics_system().run_in_state(GameState::Playing))
-            .add_system(player_shoot.as_physics_system().run_in_state(GameState::Playing))
+            .add_system(
+                move_player
+                    .as_physics_system()
+                    .run_in_state(GameState::Playing),
+            )
+            .add_system(
+                player_shoot
+                    .as_physics_system()
+                    .run_in_state(GameState::Playing),
+            )
             .add_system(setup_bullet.as_physics_system())
             .add_system(damage_bullet);
     }

@@ -14,6 +14,12 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
+        rust = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+        rustPlatform = pkgs.makeRustPlatform {
+          cargo = rust;
+          rustc = rust;
+        };
+
         buildInputs = [
           pkgs.openssl
           pkgs.pkgconfig
@@ -26,11 +32,10 @@
           pkgs.rustPlatform.bindgenHook
         ];
       in
-      with pkgs;
       {
-        devShell = mkShell {
+        devShell = pkgs.mkShell {
           inherit buildInputs nativeBuildInputs;
-          packages = [ rust-analyzer ];
+          packages = [ rust pkgs.rust-analyzer ];
         };
         defaultPackage = rustPlatform.buildRustPackage {
           name = "bevy-game-jam";
@@ -39,7 +44,7 @@
           cargoLock = {
             lockFile = ./Cargo.lock;
             outputHashes = {
-              "bevy_godot-0.2.0" = "sha256-TQl6VleUWgLDSnoqO+PyHB4pUqLGvEP2yw18buelp4A=";
+              "bevy_godot-0.2.2" = "sha256-OAgAhhmR4Atz05EuFNliJ5sDzJ5CZl0xhaEMU6dZAFA=";
             };
           };
 

@@ -304,8 +304,8 @@ dependencies = [
 
 [[package]]
 name = "bevy_godot"
-version = "0.2.1"
-source = "git+https://github.com/rand0m-cloud/bevy_godot?branch=0.2#19c8cb7f009d7068ca26dacb174c578fe0e10ce8"
+version = "0.2.2"
+source = "git+https://github.com/rand0m-cloud/bevy_godot?branch=0.2#43c10783dbec7cd09d5fb0def1a6c65818003834"
 dependencies = [
  "anyhow",
  "bevy",

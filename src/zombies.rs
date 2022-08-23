@@ -1,6 +1,9 @@
 use std::f32::consts::PI;
 
-use crate::{player::{Player, PlayerInteractVolume}, Hp, GameState};
+use crate::{
+    player::{Player, PlayerInteractVolume},
+    GameState, Hp,
+};
 use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
 use iyes_loopless::prelude::*;
 use rand::prelude::*;
@@ -43,7 +46,7 @@ fn random_displacement(min_distance: u32, max_distance: u32) -> Vector2 {
     Vector2::UP.rotated(direction) * distance
 }
 
-fn populate(mut commands: Commands)  {
+fn populate(mut commands: Commands) {
     for _ in 1..100 {
         let origin = random_displacement(500, 10000);
 
@@ -98,7 +101,7 @@ fn spawn_zombies(
     }
 }
 
-fn spawn_zombie(mut commands: Commands, origin: Vector2)  {
+fn spawn_zombie(mut commands: Commands, origin: Vector2) {
     debug!("Spawning at {origin:?}");
     commands
         .spawn()
@@ -185,8 +188,8 @@ fn zombie_bites(
         if zombies.get(*ent).is_ok() {
             commands.insert_resource(NextState(GameState::GameOver));
             debug!("You got bitten!");
-            // FIXME: Somehow at the beginnig of the game player get's bitten 100 times!
-            // TODO: break
+
+            break;
         }
     }
 }

@@ -49,18 +49,7 @@ fn random_displacement(min_distance: u32, max_distance: u32) -> Vector2 {
 fn populate(mut commands: Commands) {
     for _ in 1..100 {
         let origin = random_displacement(500, 10000);
-
-        // TODO: spawn_zombie(commands, origin);
-        debug!("Spawning at {origin:?}");
-        commands
-            .spawn()
-            .insert(GodotScene::from_path("res://Zombie.tscn"))
-            .insert(Zombie)
-            .insert(Hp(10.0))
-            .insert(Target::random(origin))
-            .insert(Transform2D(
-                GodotTransform2D::from_rotation_translation_scale(origin, 0.0, Vector2::ONE),
-            ));
+        spawn_zombie(&mut commands, origin);
     }
 }
 
@@ -87,21 +76,11 @@ fn spawn_zombies(
         let player = player.single();
         let origin = player.origin + random_displacement(5000, 10000);
 
-        // TODO: spawn_zombie(commands, origin);
-        debug!("Spawning at {origin:?}");
-        commands
-            .spawn()
-            .insert(GodotScene::from_path("res://Zombie.tscn"))
-            .insert(Zombie)
-            .insert(Hp(10.0))
-            .insert(Target::random(origin))
-            .insert(Transform2D(
-                GodotTransform2D::from_rotation_translation_scale(origin, 0.0, Vector2::ONE),
-            ));
+        spawn_zombie(&mut commands, origin);
     }
 }
 
-fn spawn_zombie(mut commands: Commands, origin: Vector2) {
+fn spawn_zombie(commands: &mut Commands, origin: Vector2) {
     debug!("Spawning at {origin:?}");
     commands
         .spawn()

@@ -133,24 +133,38 @@ fn despawn_faraway_zombies(
 }
 
 fn zombies_move(
-    mut zombies: Query<(&mut Transform2D, &Target), (With<Zombie>, Without<Player>)>,
+    mut zombies: Query<(&Target, &mut ErasedGodotRef), (With<Zombie>, Without<Player>)>,
     mut time: SystemDelta,
+    // HACK: this system accesses the physics server and needs to be run on the
+    // main thread. this system param will force this system to be run on the
+    // main thread
+    _scene_tree: SceneTreeRef,
 ) {
     let delta = time.delta_seconds();
-    for (mut zombie, Target(target)) in zombies.iter_mut() {
-        let target_relative_position = zombie.xform_inv(*target);
+    for (Target(target), mut reference) in zombies.iter_mut() {
+        let physics_server = unsafe { Physics2DServer::godot_singleton() };
+        let direct_body_state = unsafe {
+            physics_server
+                .body_get_direct_state(reference.get::<RigidBody2D>().get_rid())
+                .unwrap()
+                .assume_safe()
+        };
 
+        let mut transform = direct_body_state.transform();
+
+        let target_relative_position = transform.xform_inv(*target);
         let turn = if target_relative_position.x >= 0.0 {
             1.0
         } else {
             -1.0
         };
 
-        let rotation = zombie.rotation();
-        zombie.set_rotation(rotation + 0.5 * turn * delta);
+        let rotation = transform.rotation();
+        transform.set_rotation(rotation + 0.5 * turn * delta);
 
-        // Move forward
-        zombie.origin = zombie.xform(Vector2::new(0., -1.) * 30.0 * delta);
+        direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * 30.0);
+        direct_body_state.set_angular_velocity(0.0);
+        direct_body_state.set_transform(transform);
     }
 }
 

@@ -27,7 +27,7 @@ impl Part {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component, PartialOrd, Ord)]
 pub enum Item {
     Alarm,
     ProximityBomb,

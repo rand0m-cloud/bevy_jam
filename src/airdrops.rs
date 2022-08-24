@@ -8,6 +8,7 @@ use bevy_godot::prelude::{
     godot_prelude::Vector2,
     *,
 };
+use std::f32::consts::PI;
 
 pub struct AirDropsPlugin;
 impl Plugin for AirDropsPlugin {
@@ -104,7 +105,7 @@ fn drop_airdrops(
     if airdrop_timer.0.just_finished() {
         let mut airdrop_transform = *player.single();
 
-        airdrop_transform.set_rotation(rand::random());
+        airdrop_transform.set_rotation(rand::random::<f32>() * 2.0 * PI);
         airdrop_transform.0 = airdrop_transform.translated(Vector2::UP * 3000.0);
         airdrop_transform.set_rotation(0.0);
 

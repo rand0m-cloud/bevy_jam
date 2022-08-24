@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=2]
+[gd_scene load_steps=6 format=2]
 
 [ext_resource path="res://Player.tscn" type="PackedScene" id=1]
 [ext_resource path="res://icon.png" type="Texture" id=2]
 [ext_resource path="res://Level.tscn" type="PackedScene" id=3]
+[ext_resource path="res://ItemSlotUI.tscn" type="PackedScene" id=4]
 [ext_resource path="res://ShelterUI.tscn" type="PackedScene" id=5]
 
 [node name="Main" type="Node2D"]
@@ -72,6 +73,37 @@ margin_bottom = 126.0
 [node name="ItemPickupText" type="Label" parent="CanvasLayer/ItemPickupUI"]
 margin_right = 40.0
 margin_bottom = 14.0
+
+[node name="ItemBar" type="MarginContainer" parent="CanvasLayer"]
+anchor_top = 1.0
+anchor_bottom = 1.0
+margin_left = 41.0
+margin_top = -130.0
+margin_right = 437.0
+margin_bottom = -34.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/ItemBar"]
+margin_right = 396.0
+margin_bottom = 96.0
+
+[node name="ItemSlot1" parent="CanvasLayer/ItemBar/HBoxContainer" instance=ExtResource( 4 )]
+margin_right = 96.0
+margin_bottom = 96.0
+
+[node name="ItemSlot2" parent="CanvasLayer/ItemBar/HBoxContainer" instance=ExtResource( 4 )]
+margin_left = 100.0
+margin_right = 196.0
+margin_bottom = 96.0
+
+[node name="ItemSlot3" parent="CanvasLayer/ItemBar/HBoxContainer" instance=ExtResource( 4 )]
+margin_left = 200.0
+margin_right = 296.0
+margin_bottom = 96.0
+
+[node name="ItemSlot4" parent="CanvasLayer/ItemBar/HBoxContainer" instance=ExtResource( 4 )]
+margin_left = 300.0
+margin_right = 396.0
+margin_bottom = 96.0
 
 [node name="Level" parent="." instance=ExtResource( 3 )]
 position = Vector2( 91, 10 )

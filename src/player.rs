@@ -3,6 +3,7 @@ use crate::{
     zombies::Zombie,
     GameState, Hp, SelectedItemSlot,
 };
+use bevy::log::*;
 use bevy_godot::prelude::{
     bevy_prelude::{Added, With, Without},
     godot_prelude::Vector2,
@@ -11,6 +12,8 @@ use bevy_godot::prelude::{
 use iyes_loopless::prelude::*;
 use std::f32::consts::PI;
 
+const WALKING_SPEED: f32 = 40.0;
+
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
@@ -18,6 +21,11 @@ impl Plugin for PlayerPlugin {
             .add_startup_system(label_shot_audio)
             .add_system(
                 move_player
+                    .as_physics_system()
+                    .run_in_state(GameState::Playing),
+            )
+            .add_system(
+                set_goal
                     .as_physics_system()
                     .run_in_state(GameState::Playing),
             )
@@ -60,6 +68,10 @@ impl Player {
 #[derive(Debug, Component)]
 pub struct PlayerInteractVolume;
 
+// A goal represents a point where the player is going
+#[derive(Debug, Component)]
+struct Goal(Vector2);
+
 #[derive(Debug, Component)]
 struct ShotAudio;
 
@@ -72,7 +84,10 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
         .find_map(|(name, ent)| (name.as_str() == "Player").then_some(ent))
         .unwrap();
 
-    commands.entity(player_ent).insert(Player::default());
+    commands
+        .entity(player_ent)
+        .insert(Player::default())
+        .insert(Goal(Vector2::ZERO));
 
     let player_interact_ent = entities
         .iter()
@@ -92,26 +107,64 @@ fn label_shot_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands.entity(goal).insert(ShotAudio);
 }
 
-fn move_player(mut player: Query<(&Player, &mut Transform2D)>, mut time: SystemDelta) {
-    let (_, mut player_transform) = player.single_mut();
-    let input = Input::godot_singleton();
-
-    let move_forward = input.get_action_strength("move_forward", false);
-    let move_backward = input.get_action_strength("move_backward", false);
-
-    let rotate_left = input.get_action_strength("rotate_left", false);
-    let rotate_right = input.get_action_strength("rotate_right", false);
-
-    let move_input = move_backward - move_forward;
-    let rotate_input = rotate_right - rotate_left;
-
+fn move_player(
+    mut player: Query<(&mut ErasedGodotRef, &Goal), With<Player>>,
+    mut time: SystemDelta,
+    // HACK: this system accesses the physics server and needs to be run on the
+    // main thread. this system param will force this system to be run on the
+    // main thread
+    _scene_tree: SceneTreeRef,
+) {
     let delta = time.delta_seconds();
+    let (mut player, goal) = player.single_mut();
 
-    player_transform.origin =
-        player_transform.xform(Vector2::new(0.0, move_input as f32) * 100.0 * delta);
+    let physics_server = unsafe { Physics2DServer::godot_singleton() };
+    let direct_body_state = unsafe {
+        physics_server
+            .body_get_direct_state(player.get::<RigidBody2D>().get_rid())
+            .unwrap()
+            .assume_safe()
+    };
 
-    let rotation = player_transform.rotation();
-    player_transform.set_rotation(rotate_input as f32 * 1.5 * delta + rotation);
+    let mut transform = direct_body_state.transform();
+
+    if transform.origin.distance_to(goal.0) < 10.0 {
+        debug!("Goal reached. Stop.");
+        direct_body_state.set_linear_velocity(Vector2::ZERO);
+
+        return;
+    }
+
+    let goal_relative_position = transform.xform_inv(goal.0);
+
+    let angle = goal_relative_position.angle_to(Vector2::UP);
+
+    let turn = if angle.abs() < 0.05 {
+        0.0
+    } else if goal_relative_position.x >= 0.0 {
+        1.0
+    } else {
+        -1.0
+    };
+
+    let rotation = transform.rotation();
+    transform.set_rotation(rotation + 2.0 * turn * delta);
+
+    direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * WALKING_SPEED);
+    direct_body_state.set_angular_velocity(0.0);
+    direct_body_state.set_transform(transform);
+}
+
+fn set_goal(mut player: Query<(&mut ErasedGodotRef, &mut Goal), With<Player>>) {
+    let input = Input::godot_singleton();
+    let (mut player, mut goal) = player.single_mut();
+    let player = player.get::<Node2D>();
+
+    if input.is_action_just_pressed("set_goal", false) {
+        let mouse_position = player.get_global_mouse_position();
+        debug!("New goal is {mouse_position:?}");
+        goal.0 = mouse_position;
+    }
 }
 
 fn player_shoot(

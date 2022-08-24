@@ -18,11 +18,14 @@ impl Plugin for AirDropsPlugin {
 
         app.add_startup_system(label_air_drop_indicator)
             .add_startup_system(label_air_drop_progressbar)
+            .add_startup_system(label_pickup_text)
             .add_system(label_airdrops)
             .add_system(collect_airdrops)
             .add_system(drop_airdrops)
             .add_system(airdrop_indicator.as_visual_system())
-            .insert_resource(airdrop_timer);
+            .add_system(item_pickup_text.as_visual_system())
+            .insert_resource(airdrop_timer)
+            .insert_resource(ItemPickupTextTimer(Timer::from_seconds(4.0, false)));
     }
 }
 
@@ -34,6 +37,11 @@ pub struct AirDropIndicator;
 
 #[derive(Component)]
 pub struct AirDropProgressBar;
+
+#[derive(Component)]
+pub struct ItemPickupText;
+
+pub struct ItemPickupTextTimer(Timer);
 
 pub struct AirDropTimer(Timer);
 
@@ -53,6 +61,15 @@ fn label_air_drop_progressbar(mut commands: Commands, entities: Query<(&Name, En
         .unwrap();
 
     commands.entity(ent).insert(AirDropProgressBar);
+}
+
+fn label_pickup_text(mut commands: Commands, entities: Query<(&Name, Entity)>) {
+    let ent = entities
+        .iter()
+        .find_map(|(name, ent)| (name.as_str() == "ItemPickupText").then_some(ent))
+        .unwrap();
+
+    commands.entity(ent).insert(ItemPickupText);
 }
 
 fn label_airdrops(
@@ -105,6 +122,8 @@ fn collect_airdrops(
     mut player: Query<&mut Player>,
     mut airdrops: Query<(&AirDrop, &mut ErasedGodotRef)>,
     mut airdrop_timer: ResMut<AirDropTimer>,
+    mut item_pickup_text: Query<&mut ErasedGodotRef, (Without<AirDrop>, With<ItemPickupText>)>,
+    mut item_pickup_timer: ResMut<ItemPickupTextTimer>,
 ) {
     let player_interact_volume = player_interact_volume.single();
 
@@ -116,7 +135,17 @@ fn collect_airdrops(
             let mut player = player.single_mut();
             player.inventory.add_parts(&air_drop.0);
 
+            let mut text_label = item_pickup_text.single_mut();
+            let text_label = text_label.get::<Label>();
+            let mut text = text_label.text().to_string();
+
+            for part in air_drop.0.iter() {
+                text += &format!("Picked up a {part:?}\n");
+            }
+            text_label.set_text(text);
+
             airdrop_timer.0.reset();
+            item_pickup_timer.0.reset();
         }
     }
 }
@@ -159,5 +188,19 @@ fn airdrop_indicator(
         }
     } else {
         indicator.set_visible(false);
+    }
+}
+
+fn item_pickup_text(
+    mut time: SystemDelta,
+    mut text_timer: ResMut<ItemPickupTextTimer>,
+    mut text: Query<&mut ErasedGodotRef, With<ItemPickupText>>,
+) {
+    let delta = time.delta();
+
+    text_timer.0.tick(delta);
+    if text_timer.0.just_finished() {
+        let mut text = text.single_mut();
+        text.get::<Label>().set_text("");
     }
 }

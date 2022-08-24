@@ -63,6 +63,16 @@ margin_bottom = 14.0
 text = "Progress to Next Airdrop
 "
 
+[node name="ItemPickupUI" type="Control" parent="CanvasLayer"]
+margin_left = 10.0
+margin_top = 90.0
+margin_right = 40.0
+margin_bottom = 126.0
+
+[node name="ItemPickupText" type="Label" parent="CanvasLayer/ItemPickupUI"]
+margin_right = 40.0
+margin_bottom = 14.0
+
 [node name="Level" parent="." instance=ExtResource( 3 )]
 position = Vector2( 91, 10 )
 

@@ -1,3 +1,4 @@
+use crate::crafting::{Inventory, Item, Part};
 use crate::Hp;
 use crate::{zombies::Zombie, GameState};
 use bevy_godot::prelude::{
@@ -28,7 +29,9 @@ impl Plugin for PlayerPlugin {
 }
 
 #[derive(Debug, Component)]
-pub struct Player;
+pub struct Player {
+    pub inventory: Inventory,
+}
 
 #[derive(Debug, Component)]
 pub struct PlayerInteractVolume;
@@ -42,7 +45,12 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
         .find_map(|(name, ent)| (name.as_str() == "Player").then_some(ent))
         .unwrap();
 
-    commands.entity(player_ent).insert(Player);
+    // setup initial inventory with parts for one alarm or drone
+    let mut inventory = Inventory::default();
+    inventory.add_parts(&Item::Alarm.ingredients());
+    inventory.add_part(Part::Motor);
+
+    commands.entity(player_ent).insert(Player { inventory });
 
     let player_interact_ent = entities
         .iter()

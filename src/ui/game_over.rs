@@ -10,7 +10,7 @@ impl Plugin for GameOverUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(connect_game_over_button)
             .add_startup_system(label_game_over_screen)
-            .add_system(listen_to_restart_button)
+            .add_system(listen_to_restart_button.run_in_state(GameState::GameOver))
             .add_enter_system(GameState::GameOver, show_game_over_screen)
             .add_enter_system(GameState::Playing, hide_game_over_screen);
     }

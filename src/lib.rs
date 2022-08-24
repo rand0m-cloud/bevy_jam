@@ -4,6 +4,7 @@ use bevy_godot::prelude::*;
 use iyes_loopless::prelude::*;
 
 mod airdrops;
+mod crafting;
 mod player;
 mod ui;
 mod zombies;

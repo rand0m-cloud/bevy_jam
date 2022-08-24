@@ -54,22 +54,30 @@ rect_min_size = Vector2( 0, 128 )
 scroll_vertical_enabled = false
 
 [node name="Craftables" type="HBoxContainer" parent="TabContainer/Crafting/ScrollContainer"]
-margin_right = 260.0
+margin_right = 392.0
 margin_bottom = 128.0
 
-[node name="Buzzer" type="TextureRect" parent="TabContainer/Crafting/ScrollContainer/Craftables"]
+[node name="Alarm" type="TextureButton" parent="TabContainer/Crafting/ScrollContainer/Craftables"]
 margin_right = 128.0
 margin_bottom = 128.0
 rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 1 )
+texture_normal = ExtResource( 1 )
 expand = true
 
-[node name="TNT" type="TextureRect" parent="TabContainer/Crafting/ScrollContainer/Craftables"]
+[node name="ProximityBomb" type="TextureButton" parent="TabContainer/Crafting/ScrollContainer/Craftables"]
 margin_left = 132.0
 margin_right = 260.0
 margin_bottom = 128.0
 rect_min_size = Vector2( 128, 128 )
-texture = ExtResource( 1 )
+texture_normal = ExtResource( 1 )
+expand = true
+
+[node name="Drone" type="TextureButton" parent="TabContainer/Crafting/ScrollContainer/Craftables"]
+margin_left = 264.0
+margin_right = 392.0
+margin_bottom = 128.0
+rect_min_size = Vector2( 128, 128 )
+texture_normal = ExtResource( 1 )
 expand = true
 
 [node name="Storage" type="Control" parent="TabContainer"]

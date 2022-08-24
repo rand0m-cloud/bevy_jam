@@ -11,7 +11,7 @@ modulate = Color( 1, 1, 1, 0.784314 )
 [node name="Camera2D" type="Camera2D" parent="."]
 rotating = true
 current = true
-zoom = Vector2( 4, 4 )
+zoom = Vector2( 2, 2 )
 
 [node name="Icon" type="Sprite" parent="."]
 texture = ExtResource( 1 )

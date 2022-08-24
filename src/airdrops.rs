@@ -19,7 +19,7 @@ impl Plugin for AirDropsPlugin {
 }
 
 #[derive(Component)]
-pub struct AirDrop;
+pub struct AirDrop(Vec<Part>);
 
 #[derive(Component)]
 pub struct AirDropIndicator;
@@ -39,7 +39,9 @@ fn label_airdrops(
 ) {
     for (groups, ent) in entities.iter() {
         if groups.is("airdrop") {
-            commands.entity(ent).insert(AirDrop);
+            commands
+                .entity(ent)
+                .insert(AirDrop(vec![Part::random(), Part::random()]));
         }
     }
 }
@@ -52,14 +54,12 @@ fn collect_airdrops(
     let player_interact_volume = player_interact_volume.single();
 
     for ent in player_interact_volume.recent_collisions() {
-        if let Ok((_air_drop, mut reference)) = airdrops.get_mut(*ent) {
+        if let Ok((air_drop, mut reference)) = airdrops.get_mut(*ent) {
             let reference = reference.get::<Node>();
             reference.queue_free();
 
             let mut player = player.single_mut();
-            let part = Part::random();
-
-            player.inventory.add_part(part);
+            player.inventory.add_parts(&air_drop.0);
         }
     }
 }

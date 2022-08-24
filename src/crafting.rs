@@ -44,6 +44,14 @@ impl Item {
         })
     }
 
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Alarm => "Alarm",
+            Self::ProximityBomb => "Proximity Bomb",
+            Self::Drone => "Drone",
+        }
+    }
+
     pub fn ingredients(&self) -> Vec<Part> {
         use Part::*;
 

@@ -26,22 +26,42 @@ margin_top = 32.0
 margin_right = -4.0
 margin_bottom = -4.0
 
-[node name="SelectedItem" type="TextureRect" parent="TabContainer/Crafting"]
+[node name="Control" type="Control" parent="TabContainer/Crafting"]
+anchor_right = 1.0
+rect_min_size = Vector2( 0, 200 )
+
+[node name="SelectedItem" type="TextureRect" parent="TabContainer/Crafting/Control"]
 anchor_left = 0.5
-anchor_top = 0.107
 anchor_right = 0.5
-anchor_bottom = 0.107
 margin_left = -32.0
+margin_top = 16.0
+margin_right = 32.0
+margin_bottom = 80.0
 texture = ExtResource( 1 )
 
-[node name="CraftButton" type="Button" parent="TabContainer/Crafting/SelectedItem"]
+[node name="SelectedItemText" type="Label" parent="TabContainer/Crafting/Control/SelectedItem"]
 anchor_left = 0.5
-anchor_top = 0.5
+anchor_top = 1.0
 anchor_right = 0.5
-anchor_bottom = 0.5
-margin_left = -48.0
-margin_top = 54.928
-margin_bottom = 74.928
+anchor_bottom = 1.0
+margin_left = -100.0
+margin_top = 16.0
+margin_right = 3.0
+margin_bottom = 30.0
+rect_min_size = Vector2( 100, 0 )
+rect_scale = Vector2( 2, 2 )
+align = 1
+valign = 1
+
+[node name="CraftButton" type="Button" parent="TabContainer/Crafting/Control"]
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+margin_left = -47.0
+margin_top = -53.0
+margin_right = 1.0
+margin_bottom = -33.0
 rect_min_size = Vector2( 48, 0 )
 rect_scale = Vector2( 2, 2 )
 text = "Craft"

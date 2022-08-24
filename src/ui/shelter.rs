@@ -1,7 +1,7 @@
 use crate::{crafting::Item, player::Player};
 use bevy::log::*;
 use bevy_godot::prelude::{
-    bevy_prelude::{EventReader, With, Without},
+    bevy_prelude::{EventReader, ParamSet, With, Without},
     godot_prelude::Color,
     *,
 };
@@ -32,6 +32,9 @@ struct CraftButton;
 
 #[derive(Component)]
 struct CraftingTarget(Option<Item>);
+
+#[derive(Component)]
+struct CraftingTargetText;
 
 fn setup_shelter_ui(
     mut commands: Commands,
@@ -97,11 +100,22 @@ fn setup_shelter_ui(
         .entity(craft_target)
         .insert(CraftingUi)
         .insert(CraftingTarget(None));
+
+    // setup crafting target text
+    let craft_target_text = entities
+        .iter()
+        .find_map(|(name, ent, _)| (name.as_str() == "SelectedItemText").then_some(ent))
+        .unwrap();
+
+    commands
+        .entity(craft_target_text)
+        .insert(CraftingUi)
+        .insert(CraftingTargetText);
 }
 
 fn refresh_crafting_ui(
     player: &Player,
-    items: &mut Query<(&Item, &mut ErasedGodotRef), (With<CraftingUi>, Without<CraftButton>)>,
+    items: &mut Query<(&Item, &mut ErasedGodotRef), With<CraftingUi>>,
 ) {
     for (item, mut reference) in items.iter_mut() {
         let reference = reference.get::<Control>();
@@ -118,7 +132,7 @@ fn refresh_crafting_ui(
 fn show_shelter_ui(
     mut screen: Query<&mut ErasedGodotRef, (With<ShelterUi>, Without<CraftingUi>)>,
     player: Query<&Player>,
-    mut items: Query<(&Item, &mut ErasedGodotRef), (With<CraftingUi>, Without<CraftButton>)>,
+    mut items: Query<(&Item, &mut ErasedGodotRef), With<CraftingUi>>,
 ) {
     debug!("Showing shelter ui.");
     let mut screen = screen.single_mut();
@@ -140,15 +154,19 @@ fn listen_for_crafting_ui_presses(
     mut events: EventReader<GodotSignal>,
     mut player: Query<&mut Player>,
     mut crafting_target: Query<&mut CraftingTarget>,
-    mut craft_button: Query<&mut ErasedGodotRef, With<CraftButton>>,
-    mut items: Query<(&Item, &mut ErasedGodotRef), (With<CraftingUi>, Without<CraftButton>)>,
+    mut queries: ParamSet<(
+        Query<&mut ErasedGodotRef, With<CraftButton>>,
+        Query<(&Item, &mut ErasedGodotRef), With<CraftingUi>>,
+        Query<&mut ErasedGodotRef, With<CraftingTargetText>>,
+    )>,
 ) {
     let mut player = player.single_mut();
 
-    let mut craft_button = craft_button.single_mut();
-    let craft_button = craft_button.get::<Button>();
-
     for event in events.iter() {
+        let mut craft_button = queries.p0();
+        let mut craft_button = craft_button.single_mut();
+        let craft_button = craft_button.get::<Button>();
+
         if event.name() == "pressed" {
             let node_name = event.origin().get::<Node>().name().to_string();
 
@@ -161,6 +179,11 @@ fn listen_for_crafting_ui_presses(
                 } else {
                     craft_button.set_disabled(true);
                 }
+
+                // set the craft target text
+                let mut craft_target_text = queries.p2();
+                let mut craft_target_text = craft_target_text.single_mut();
+                craft_target_text.get::<Label>().set_text(item.as_str());
             } else if node_name == "CraftButton" {
                 if let Some(target) = crafting_target.single_mut().0 {
                     debug!("trying to craft: {:?}", target);
@@ -173,7 +196,7 @@ fn listen_for_crafting_ui_presses(
                         craft_button.set_disabled(true);
                     }
 
-                    refresh_crafting_ui(&player, &mut items);
+                    refresh_crafting_ui(&player, &mut queries.p1());
                 }
             }
         }

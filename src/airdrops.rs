@@ -8,7 +8,7 @@ use bevy_godot::prelude::{
     godot_prelude::Vector2,
     *,
 };
-use std::f32::consts::PI;
+use std::{f32::consts::PI, fmt::Write};
 
 pub struct AirDropsPlugin;
 impl Plugin for AirDropsPlugin {
@@ -141,7 +141,7 @@ fn collect_airdrops(
             let mut text = text_label.text().to_string();
 
             for part in air_drop.0.iter() {
-                text += &format!("Picked up a {part:?}\n");
+                write!(&mut text, "Picked up a {part:?}\n").unwrap();
             }
             text_label.set_text(text);
 

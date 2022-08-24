@@ -1,4 +1,6 @@
+use bevy::log::*;
 use bevy_godot::prelude::*;
+use rand::prelude::SliceRandom;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
@@ -8,6 +10,21 @@ pub enum Part {
     Buzzer,
     Explosive,
     Motor,
+}
+
+impl Part {
+    pub const ALL: &'static [Part] = &[
+        Self::Battery,
+        Self::Electronics,
+        Self::Buzzer,
+        Self::Explosive,
+        Self::Motor,
+    ];
+
+    pub fn random() -> Self {
+        let mut rng = rand::thread_rng();
+        *Self::ALL.choose(&mut rng).unwrap()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
@@ -80,10 +97,12 @@ impl Inventory {
             *self.parts.get_mut(&part).unwrap() -= count;
         }
 
+        info!("player crafted: {:?}", item);
         *self.items.entry(item).or_default() += 1;
     }
 
     pub fn add_part(&mut self, part: Part) {
+        info!("giving player part: {:?}", part);
         *self.parts.entry(part).or_default() += 1;
     }
 

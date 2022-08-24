@@ -1,4 +1,7 @@
-use crate::player::PlayerInteractVolume;
+use crate::{
+    crafting::Part,
+    player::{Player, PlayerInteractVolume},
+};
 use bevy_godot::prelude::{
     bevy_prelude::{Added, With, Without},
     godot_prelude::Vector2,
@@ -43,6 +46,7 @@ fn label_airdrops(
 
 fn collect_airdrops(
     player_interact_volume: Query<&Collisions, With<PlayerInteractVolume>>,
+    mut player: Query<&mut Player>,
     mut airdrops: Query<(&AirDrop, &mut ErasedGodotRef)>,
 ) {
     let player_interact_volume = player_interact_volume.single();
@@ -51,6 +55,11 @@ fn collect_airdrops(
         if let Ok((_air_drop, mut reference)) = airdrops.get_mut(*ent) {
             let reference = reference.get::<Node>();
             reference.queue_free();
+
+            let mut player = player.single_mut();
+            let part = Part::random();
+
+            player.inventory.add_part(part);
         }
     }
 }

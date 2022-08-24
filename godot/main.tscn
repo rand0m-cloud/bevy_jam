@@ -44,6 +44,25 @@ text = "Restart"
 
 [node name="ShelterUI" parent="CanvasLayer" instance=ExtResource( 5 )]
 
+[node name="AirdropProgress" type="Control" parent="CanvasLayer"]
+margin_left = 32.0
+margin_top = 25.0
+margin_right = 72.0
+margin_bottom = 65.0
+
+[node name="AirdropProgressBar" type="ProgressBar" parent="CanvasLayer/AirdropProgress"]
+margin_top = 18.0
+margin_right = 150.0
+margin_bottom = 43.0
+rect_min_size = Vector2( 150, 25 )
+max_value = 1.0
+
+[node name="Label" type="Label" parent="CanvasLayer/AirdropProgress"]
+margin_right = 40.0
+margin_bottom = 14.0
+text = "Progress to Next Airdrop
+"
+
 [node name="Level" parent="." instance=ExtResource( 3 )]
 position = Vector2( 91, 10 )
 

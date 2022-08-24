@@ -12,12 +12,17 @@ use bevy_godot::prelude::{
 pub struct AirDropsPlugin;
 impl Plugin for AirDropsPlugin {
     fn build(&self, app: &mut App) {
+        // start with 50% progress on airdrop
+        let mut airdrop_timer = AirDropTimer(Timer::from_seconds(10.0, false));
+        airdrop_timer.0.tick(airdrop_timer.0.duration() / 2);
+
         app.add_startup_system(label_air_drop_indicator)
+            .add_startup_system(label_air_drop_progressbar)
             .add_system(label_airdrops)
             .add_system(collect_airdrops)
             .add_system(drop_airdrops)
             .add_system(airdrop_indicator.as_visual_system())
-            .insert_resource(AirDropTimer(Timer::from_seconds(5.0, false)));
+            .insert_resource(airdrop_timer);
     }
 }
 
@@ -26,6 +31,9 @@ pub struct AirDrop(Vec<Part>);
 
 #[derive(Component)]
 pub struct AirDropIndicator;
+
+#[derive(Component)]
+pub struct AirDropProgressBar;
 
 pub struct AirDropTimer(Timer);
 
@@ -36,6 +44,15 @@ fn label_air_drop_indicator(mut commands: Commands, entities: Query<(&Name, Enti
         .unwrap();
 
     commands.entity(ent).insert(AirDropIndicator);
+}
+
+fn label_air_drop_progressbar(mut commands: Commands, entities: Query<(&Name, Entity)>) {
+    let ent = entities
+        .iter()
+        .find_map(|(name, ent)| (name.as_str() == "AirdropProgressBar").then_some(ent))
+        .unwrap();
+
+    commands.entity(ent).insert(AirDropProgressBar);
 }
 
 fn label_airdrops(
@@ -56,10 +73,17 @@ fn drop_airdrops(
     mut time: SystemDelta,
     mut airdrop_timer: ResMut<AirDropTimer>,
     player: Query<&Transform2D, With<Player>>,
+    mut progress_bar: Query<&mut ErasedGodotRef, With<AirDropProgressBar>>,
 ) {
     let delta = time.delta();
 
     airdrop_timer.0.tick(delta);
+
+    let mut progress_bar = progress_bar.single_mut();
+    progress_bar
+        .get::<ProgressBar>()
+        .set_value(airdrop_timer.0.percent() as f64);
+
     if airdrop_timer.0.just_finished() {
         let mut airdrop_transform = *player.single();
 

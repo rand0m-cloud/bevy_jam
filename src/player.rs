@@ -22,6 +22,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(label_player)
             .add_startup_system(label_shot_audio)
+            .add_startup_system(label_goal)
             .add_system(
                 move_player
                     .as_physics_system()
@@ -83,7 +84,7 @@ pub struct PlayerInteractVolume;
 
 // A goal represents a point where the player is going
 #[derive(Debug, Component)]
-struct Goal(Vector2);
+struct Goal;
 
 #[derive(Debug, Component, PartialEq, Eq)]
 pub enum Activity {
@@ -108,8 +109,7 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands
         .entity(player_ent)
         .insert(Player::default())
-        .insert(Activity::Ducking)
-        .insert(Goal(Vector2::ZERO));
+        .insert(Activity::Ducking);
 
     let player_interact_ent = entities
         .iter()
@@ -129,8 +129,18 @@ fn label_shot_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands.entity(goal).insert(ShotAudio);
 }
 
+fn label_goal(mut commands: Commands, entities: Query<(&Name, Entity)>) {
+    let goal = entities
+        .iter()
+        .find_map(|(name, ent)| (name.as_str() == "GoToGoal").then_some(ent))
+        .unwrap();
+
+    commands.entity(goal).insert(Goal);
+}
+
 fn move_player(
-    mut player: Query<(&mut ErasedGodotRef, &Goal, &mut Activity), With<Player>>,
+    mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
+    goal: Query<&Transform2D, With<Goal>>,
     mut time: SystemDelta,
     // HACK: this system accesses the physics server and needs to be run on the
     // main thread. this system param will force this system to be run on the
@@ -138,9 +148,10 @@ fn move_player(
     _scene_tree: SceneTreeRef,
 ) {
     let delta = time.delta_seconds();
-    let (mut player, goal, mut activity) = player.single_mut();
+    let (mut player, mut activity) = player.single_mut();
+    let goal = goal.single();
 
-    let goal_rached = match *activity {
+    let goal_reached = match *activity {
         Activity::Ducking => {
             stop(&mut player);
             return;
@@ -150,18 +161,18 @@ fn move_player(
             stop(&mut player);
             return;
         }
-        Activity::Walking => advance(&mut player, goal, WALKING_SPEED, delta),
-        Activity::Running => advance(&mut player, goal, RUNNING_SPEED, delta),
+        Activity::Walking => advance(&mut player, goal.origin, WALKING_SPEED, delta),
+        Activity::Running => advance(&mut player, goal.origin, RUNNING_SPEED, delta),
     };
 
-    if goal_rached {
+    if goal_reached {
         debug!("Goal reached. Stop.");
         stop(&mut player);
         *activity = Activity::Ducking;
     }
 }
 
-fn advance(player: &mut ErasedGodotRef, goal: &Goal, speed: f32, delta: f32) -> bool {
+fn advance(player: &mut ErasedGodotRef, goal: Vector2, speed: f32, delta: f32) -> bool {
     let physics_server = unsafe { Physics2DServer::godot_singleton() };
     let direct_body_state = unsafe {
         physics_server
@@ -172,7 +183,7 @@ fn advance(player: &mut ErasedGodotRef, goal: &Goal, speed: f32, delta: f32) -> 
 
     let mut transform = direct_body_state.transform();
 
-    let goal_relative_position = transform.xform_inv(goal.0);
+    let goal_relative_position = transform.xform_inv(goal);
 
     let angle = goal_relative_position.angle_to(Vector2::UP);
 
@@ -192,7 +203,7 @@ fn advance(player: &mut ErasedGodotRef, goal: &Goal, speed: f32, delta: f32) -> 
     direct_body_state.set_transform(transform);
 
     // Is the goal reached?
-    transform.origin.distance_to(goal.0) < 10.0
+    transform.origin.distance_to(goal) < 1.0
 }
 
 fn stop(player: &mut ErasedGodotRef) {
@@ -208,15 +219,20 @@ fn stop(player: &mut ErasedGodotRef) {
     direct_body_state.set_angular_velocity(0.0);
 }
 
-fn set_goal(mut player: Query<(&mut ErasedGodotRef, &mut Goal, &mut Activity), With<Player>>) {
+fn set_goal(
+    mut goal: Query<&mut Transform2D, With<Goal>>,
+    mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
+) {
     let input = Input::godot_singleton();
-    let (mut player, mut goal, mut activity) = player.single_mut();
+    let (mut player, mut activity) = player.single_mut();
+    let mut goal = goal.single_mut();
     let player = player.get::<Node2D>();
 
     if input.is_action_just_pressed("set_goal", false) {
+        // TODO: Getting mouse position from player seems odd. Isn't there a more obvious way?
         let mouse_position = player.get_global_mouse_position();
         debug!("New goal is {mouse_position:?}");
-        goal.0 = mouse_position;
+        goal.origin = mouse_position;
         *activity = match *activity {
             Activity::Ducking => Activity::Walking,
             Activity::Standing => Activity::Walking,

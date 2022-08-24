@@ -77,7 +77,7 @@ fn move_player(mut player: Query<(&Player, &mut Transform2D)>, mut time: SystemD
     let delta = time.delta_seconds();
 
     player_transform.origin =
-        player_transform.xform(Vector2::new(0.0, move_input as f32) * 50.0 * delta);
+        player_transform.xform(Vector2::new(0.0, move_input as f32) * 100.0 * delta);
 
     let rotation = player_transform.rotation();
     player_transform.set_rotation(rotate_input as f32 * 1.5 * delta + rotation);

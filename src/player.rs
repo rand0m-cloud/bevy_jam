@@ -12,7 +12,10 @@ use bevy_godot::prelude::{
 use iyes_loopless::prelude::*;
 use std::f32::consts::PI;
 
+// TODO: Is there a way to set those in Godot and read them here? It would be nice to be able to experiment with constants on the fly.
 const WALKING_SPEED: f32 = 40.0;
+const RUNNING_SPEED: f32 = 100.0;
+const ROTATION_SPEED: f32 = 2.0;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -26,6 +29,16 @@ impl Plugin for PlayerPlugin {
             )
             .add_system(
                 set_goal
+                    .as_physics_system()
+                    .run_in_state(GameState::Playing),
+            )
+            .add_system(
+                toggle_ducking
+                    .as_physics_system()
+                    .run_in_state(GameState::Playing),
+            )
+            .add_system(
+                toggle_running
                     .as_physics_system()
                     .run_in_state(GameState::Playing),
             )
@@ -72,6 +85,14 @@ pub struct PlayerInteractVolume;
 #[derive(Debug, Component)]
 struct Goal(Vector2);
 
+#[derive(Debug, Component, PartialEq, Eq)]
+pub enum Activity {
+    Ducking,
+    Standing,
+    Walking,
+    Running,
+}
+
 #[derive(Debug, Component)]
 struct ShotAudio;
 
@@ -87,6 +108,7 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands
         .entity(player_ent)
         .insert(Player::default())
+        .insert(Activity::Ducking)
         .insert(Goal(Vector2::ZERO));
 
     let player_interact_ent = entities
@@ -108,7 +130,7 @@ fn label_shot_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
 }
 
 fn move_player(
-    mut player: Query<(&mut ErasedGodotRef, &Goal), With<Player>>,
+    mut player: Query<(&mut ErasedGodotRef, &Goal, &mut Activity), With<Player>>,
     mut time: SystemDelta,
     // HACK: this system accesses the physics server and needs to be run on the
     // main thread. this system param will force this system to be run on the
@@ -116,8 +138,30 @@ fn move_player(
     _scene_tree: SceneTreeRef,
 ) {
     let delta = time.delta_seconds();
-    let (mut player, goal) = player.single_mut();
+    let (mut player, goal, mut activity) = player.single_mut();
 
+    let goal_rached = match *activity {
+        Activity::Ducking => {
+            stop(&mut player);
+            return;
+        }
+        Activity::Standing => {
+            // TODO: Implement aiming
+            stop(&mut player);
+            return;
+        }
+        Activity::Walking => advance(&mut player, goal, WALKING_SPEED, delta),
+        Activity::Running => advance(&mut player, goal, RUNNING_SPEED, delta),
+    };
+
+    if goal_rached {
+        debug!("Goal reached. Stop.");
+        stop(&mut player);
+        *activity = Activity::Ducking;
+    }
+}
+
+fn advance(player: &mut ErasedGodotRef, goal: &Goal, speed: f32, delta: f32) -> bool {
     let physics_server = unsafe { Physics2DServer::godot_singleton() };
     let direct_body_state = unsafe {
         physics_server
@@ -127,13 +171,6 @@ fn move_player(
     };
 
     let mut transform = direct_body_state.transform();
-
-    if transform.origin.distance_to(goal.0) < 10.0 {
-        debug!("Goal reached. Stop.");
-        direct_body_state.set_linear_velocity(Vector2::ZERO);
-
-        return;
-    }
 
     let goal_relative_position = transform.xform_inv(goal.0);
 
@@ -148,22 +185,75 @@ fn move_player(
     };
 
     let rotation = transform.rotation();
-    transform.set_rotation(rotation + 2.0 * turn * delta);
+    transform.set_rotation(rotation + ROTATION_SPEED * turn * delta);
 
-    direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * WALKING_SPEED);
+    direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * speed);
     direct_body_state.set_angular_velocity(0.0);
     direct_body_state.set_transform(transform);
+
+    // Is the goal reached?
+    transform.origin.distance_to(goal.0) < 10.0
 }
 
-fn set_goal(mut player: Query<(&mut ErasedGodotRef, &mut Goal), With<Player>>) {
+fn stop(player: &mut ErasedGodotRef) {
+    let physics_server = unsafe { Physics2DServer::godot_singleton() };
+    let direct_body_state = unsafe {
+        physics_server
+            .body_get_direct_state(player.get::<RigidBody2D>().get_rid())
+            .unwrap()
+            .assume_safe()
+    };
+
+    direct_body_state.set_linear_velocity(Vector2::ZERO);
+    direct_body_state.set_angular_velocity(0.0);
+}
+
+fn set_goal(mut player: Query<(&mut ErasedGodotRef, &mut Goal, &mut Activity), With<Player>>) {
     let input = Input::godot_singleton();
-    let (mut player, mut goal) = player.single_mut();
+    let (mut player, mut goal, mut activity) = player.single_mut();
     let player = player.get::<Node2D>();
 
     if input.is_action_just_pressed("set_goal", false) {
         let mouse_position = player.get_global_mouse_position();
         debug!("New goal is {mouse_position:?}");
         goal.0 = mouse_position;
+        *activity = match *activity {
+            Activity::Ducking => Activity::Walking,
+            Activity::Standing => Activity::Walking,
+            Activity::Walking => Activity::Walking,
+            Activity::Running => Activity::Running,
+        };
+        debug!("Now {activity:?}");
+    }
+}
+
+fn toggle_running(mut activity: Query<&mut Activity, With<Player>>) {
+    let input = Input::godot_singleton();
+    let mut activity = activity.single_mut();
+
+    if input.is_action_just_pressed("toggle_running", false) {
+        *activity = match *activity {
+            Activity::Ducking => Activity::Running,
+            Activity::Standing => Activity::Running,
+            Activity::Walking => Activity::Running,
+            Activity::Running => Activity::Walking,
+        };
+        debug!("Now {activity:?}");
+    }
+}
+
+fn toggle_ducking(mut activity: Query<&mut Activity, With<Player>>) {
+    let input = Input::godot_singleton();
+    let mut activity = activity.single_mut();
+
+    if input.is_action_just_pressed("toggle_ducking", false) {
+        *activity = match *activity {
+            Activity::Ducking => Activity::Standing,
+            Activity::Standing => Activity::Ducking,
+            Activity::Walking => Activity::Ducking,
+            Activity::Running => Activity::Ducking,
+        };
+        debug!("Now {activity:?}");
     }
 }
 

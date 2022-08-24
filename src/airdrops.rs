@@ -2,6 +2,7 @@ use crate::{
     crafting::Part,
     player::{Player, PlayerInteractVolume},
 };
+use bevy::log::*;
 use bevy_godot::prelude::{
     bevy_prelude::{Added, With, Without},
     godot_prelude::Vector2,
@@ -14,7 +15,9 @@ impl Plugin for AirDropsPlugin {
         app.add_startup_system(label_air_drop_indicator)
             .add_system(label_airdrops)
             .add_system(collect_airdrops)
-            .add_system(airdrop_indicator.as_visual_system());
+            .add_system(drop_airdrops)
+            .add_system(airdrop_indicator.as_visual_system())
+            .insert_resource(AirDropTimer(Timer::from_seconds(5.0, false)));
     }
 }
 
@@ -23,6 +26,8 @@ pub struct AirDrop(Vec<Part>);
 
 #[derive(Component)]
 pub struct AirDropIndicator;
+
+pub struct AirDropTimer(Timer);
 
 fn label_air_drop_indicator(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     let ent = entities
@@ -46,10 +51,36 @@ fn label_airdrops(
     }
 }
 
+fn drop_airdrops(
+    mut commands: Commands,
+    mut time: SystemDelta,
+    mut airdrop_timer: ResMut<AirDropTimer>,
+    player: Query<&Transform2D, With<Player>>,
+) {
+    let delta = time.delta();
+
+    airdrop_timer.0.tick(delta);
+    if airdrop_timer.0.just_finished() {
+        let mut airdrop_transform = *player.single();
+
+        airdrop_transform.set_rotation(rand::random());
+        airdrop_transform.0 = airdrop_transform.translated(Vector2::UP * 25000.0);
+        airdrop_transform.set_rotation(0.0);
+
+        info!("dropping airdrop at {:?}", airdrop_transform.origin);
+
+        commands
+            .spawn()
+            .insert(GodotScene::from_path("res://Airdrop.tscn"))
+            .insert(airdrop_transform);
+    }
+}
+
 fn collect_airdrops(
     player_interact_volume: Query<&Collisions, With<PlayerInteractVolume>>,
     mut player: Query<&mut Player>,
     mut airdrops: Query<(&AirDrop, &mut ErasedGodotRef)>,
+    mut airdrop_timer: ResMut<AirDropTimer>,
 ) {
     let player_interact_volume = player_interact_volume.single();
 
@@ -60,6 +91,8 @@ fn collect_airdrops(
 
             let mut player = player.single_mut();
             player.inventory.add_parts(&air_drop.0);
+
+            airdrop_timer.0.reset();
         }
     }
 }
@@ -100,5 +133,7 @@ fn airdrop_indicator(
         } else {
             indicator.set_visible(false);
         }
+    } else {
+        indicator.set_visible(false);
     }
 }

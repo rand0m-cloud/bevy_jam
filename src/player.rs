@@ -10,7 +10,6 @@ use bevy_godot::prelude::{
     *,
 };
 use iyes_loopless::prelude::*;
-use std::f32::consts::PI;
 
 // TODO: Is there a way to set those in Godot and read them here? It would be nice to be able to experiment with constants on the fly.
 const WALKING_SPEED: f32 = 40.0;
@@ -167,41 +166,48 @@ fn move_player(
 ) {
     let delta = time.delta_seconds();
     let (mut player, mut activity) = player.single_mut();
-    let goal = goal.single();
-    let target = target.single();
+    let goal = goal.single().origin;
+    let target = target.single().origin;
 
-    let goal_reached = match *activity {
-        Activity::Ducking => {
-            stop(&mut player);
-            return;
-        }
-        Activity::Standing => {
-            stop(&mut player);
-            turn_toward(&mut player, target.origin, delta);
-            return;
-        }
-        Activity::Walking => advance(&mut player, goal.origin, WALKING_SPEED, delta),
-        Activity::Running => advance(&mut player, goal.origin, RUNNING_SPEED, delta),
-    };
-
-    if goal_reached {
-        debug!("Goal reached. Stop.");
-        stop(&mut player);
-        *activity = Activity::Ducking;
-        debug!("Now {activity:?}");
-    }
-}
-
-fn turn_toward(player: &mut ErasedGodotRef, goal: Vector2, delta: f32) {
-    // TODO: Pass body as an argument to avoid repeating?
     let physics_server = unsafe { Physics2DServer::godot_singleton() };
-    let direct_body_state = unsafe {
+    let body = unsafe {
         physics_server
             .body_get_direct_state(player.get::<RigidBody2D>().get_rid())
             .unwrap()
             .assume_safe()
     };
-    let mut transform = direct_body_state.transform();
+
+    let goal_reached = match *activity {
+        Activity::Ducking => {
+            stop(body);
+            return;
+        }
+        Activity::Standing => {
+            stop(body);
+            turn_toward(body, target, delta);
+            return;
+        }
+        Activity::Walking => {
+            turn_toward(body, goal, delta);
+            advance(body, goal, WALKING_SPEED)
+        }
+        Activity::Running => {
+            turn_toward(body, goal, delta);
+            advance(body, goal, RUNNING_SPEED)
+        }
+    };
+
+    if goal_reached {
+        debug!("Goal reached. Stop.");
+        stop(body);
+        *activity = Activity::Ducking;
+        debug!("Now {activity:?}");
+    }
+}
+
+fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2, delta: f32) {
+    // TODO: Pass body as an argument to avoid repeating?
+    let mut transform = body.transform();
 
     let goal_relative_position = transform.xform_inv(goal);
 
@@ -219,54 +225,23 @@ fn turn_toward(player: &mut ErasedGodotRef, goal: Vector2, delta: f32) {
 
     let rotation = transform.rotation();
     transform.set_rotation(rotation + ROTATION_SPEED * turn * delta);
-    direct_body_state.set_transform(transform);
+    body.set_transform(transform);
 }
 
-fn advance(player: &mut ErasedGodotRef, goal: Vector2, speed: f32, delta: f32) -> bool {
-    let physics_server = unsafe { Physics2DServer::godot_singleton() };
-    let direct_body_state = unsafe {
-        physics_server
-            .body_get_direct_state(player.get::<RigidBody2D>().get_rid())
-            .unwrap()
-            .assume_safe()
-    };
+fn advance(body: TRef<Physics2DDirectBodyState>, goal: Vector2, speed: f32) -> bool {
+    let transform = body.transform();
 
-    let mut transform = direct_body_state.transform();
-
-    let goal_relative_position = transform.xform_inv(goal);
-
-    let angle = goal_relative_position.angle_to(Vector2::UP);
-
-    let turn = if angle.abs() < 0.05 {
-        0.0
-    } else if goal_relative_position.x >= 0.0 {
-        1.0
-    } else {
-        -1.0
-    };
-
-    let rotation = transform.rotation();
-    transform.set_rotation(rotation + ROTATION_SPEED * turn * delta);
-
-    direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * speed);
-    direct_body_state.set_angular_velocity(0.0);
-    direct_body_state.set_transform(transform);
+    body.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * speed);
+    body.set_angular_velocity(0.0); // TODO: What's that for?
+    body.set_transform(transform);
 
     // Is the goal reached?
     transform.origin.distance_to(goal) < 1.0
 }
 
-fn stop(player: &mut ErasedGodotRef) {
-    let physics_server = unsafe { Physics2DServer::godot_singleton() };
-    let direct_body_state = unsafe {
-        physics_server
-            .body_get_direct_state(player.get::<RigidBody2D>().get_rid())
-            .unwrap()
-            .assume_safe()
-    };
-
-    direct_body_state.set_linear_velocity(Vector2::ZERO);
-    direct_body_state.set_angular_velocity(0.0);
+fn stop(body: TRef<Physics2DDirectBodyState>) {
+    body.set_linear_velocity(Vector2::ZERO);
+    body.set_angular_velocity(0.0);
 }
 
 fn aim(
@@ -345,7 +320,7 @@ fn toggle_ducking(mut activity: Query<&mut Activity, With<Player>>) {
 
 fn player_shoot(
     mut commands: Commands,
-    mut target: Query<&mut ErasedGodotRef, (With<Target>, Without<Player>)>,
+    mut target: Query<&mut ErasedGodotRef, With<Target>>,
     mut player: Query<(&mut Player, &Transform2D, &mut Activity)>,
 ) {
     let input = Input::godot_singleton();

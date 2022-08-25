@@ -6,6 +6,7 @@ use iyes_loopless::prelude::*;
 mod airdrops;
 mod crafting;
 mod player;
+mod traps;
 mod ui;
 mod zombies;
 
@@ -16,7 +17,8 @@ fn build_app(app: &mut App) {
         .add_plugin(player::PlayerPlugin)
         .add_plugin(zombies::ZombiesPlugin)
         .add_plugin(airdrops::AirDropsPlugin)
-        .add_plugin(ui::UiPlugin);
+        .add_plugin(ui::UiPlugin)
+        .add_plugin(traps::TrapsPlugin);
 }
 
 bevy_godot_init!(init, build_app);

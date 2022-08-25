@@ -18,7 +18,8 @@ impl Plugin for ZombiesPlugin {
             .add_system(zombies_move.as_physics_system())
             .add_system(despawn_faraway_zombies.as_physics_system())
             .add_system(kill_zombies.as_physics_system())
-            .add_system(zombie_targeting.as_physics_system());
+            .add_system(zombie_targeting.as_physics_system())
+            .add_exit_system(GameState::GameOver, on_restart);
     }
 }
 
@@ -46,9 +47,14 @@ fn random_displacement(min_distance: u32, max_distance: u32) -> Vector2 {
     Vector2::UP.rotated(direction) * distance
 }
 
-fn populate(mut commands: Commands) {
+fn populate(mut commands: Commands, player: Query<&Transform2D, With<Player>>) {
+    let player_origin = player
+        .get_single()
+        .map(|transform| transform.origin)
+        .unwrap_or_default();
+
     for _ in 1..100 {
-        let origin = random_displacement(500, 10000);
+        let origin = random_displacement(1000, 3000) + player_origin;
         spawn_zombie(&mut commands, origin);
     }
 }
@@ -74,7 +80,7 @@ fn spawn_zombies(
 
         // Spawn new zombie away from the player
         let player = player.single();
-        let origin = player.origin + random_displacement(5000, 10000);
+        let origin = player.origin + random_displacement(1250, 3000);
 
         spawn_zombie(&mut commands, origin);
     }
@@ -100,7 +106,7 @@ fn despawn_faraway_zombies(
     let player = player.single();
     for (transform, mut zombie) in zombies.iter_mut() {
         let distance = transform.origin.distance_to(player.origin);
-        if distance > 12000.0 {
+        if distance > 5000.0 {
             debug!(
                 "{:?} is too far from {:?} ({:?}). Despawning.",
                 transform.origin, player.origin, distance
@@ -139,9 +145,9 @@ fn zombies_move(
         };
 
         let rotation = transform.rotation();
-        transform.set_rotation(rotation + 0.5 * turn * delta);
+        transform.set_rotation(rotation + 1.0 * turn * delta);
 
-        direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * 30.0);
+        direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * 70.0);
         direct_body_state.set_angular_velocity(0.0);
         direct_body_state.set_transform(transform);
     }
@@ -185,4 +191,16 @@ fn zombie_bites(
             break;
         }
     }
+}
+
+fn on_restart(
+    commands: Commands,
+    mut zombies: Query<&mut ErasedGodotRef, With<Zombie>>,
+    player: Query<&Transform2D, With<Player>>,
+) {
+    for mut zombie in zombies.iter_mut() {
+        zombie.get::<Node>().queue_free();
+    }
+
+    populate(commands, player);
 }

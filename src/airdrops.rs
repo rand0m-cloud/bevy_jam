@@ -1,7 +1,7 @@
-use crate::Score;
 use crate::{
     crafting::Part,
     player::{Player, PlayerInteractVolume},
+    GameState, Score,
 };
 use bevy::log::*;
 use bevy_godot::prelude::{
@@ -9,6 +9,7 @@ use bevy_godot::prelude::{
     godot_prelude::Vector2,
     *,
 };
+use iyes_loopless::prelude::*;
 use std::{f32::consts::PI, fmt::Write};
 
 pub struct AirDropsPlugin;
@@ -27,7 +28,8 @@ impl Plugin for AirDropsPlugin {
             .add_system(airdrop_indicator.as_visual_system())
             .add_system(item_pickup_text.as_visual_system())
             .insert_resource(airdrop_timer)
-            .insert_resource(ItemPickupTextTimer(Timer::from_seconds(4.0, false)));
+            .insert_resource(ItemPickupTextTimer(Timer::from_seconds(4.0, false)))
+            .add_exit_system(GameState::GameOver, on_restart);
     }
 }
 
@@ -107,7 +109,7 @@ fn drop_airdrops(
         let mut airdrop_transform = *player.single();
 
         airdrop_transform.set_rotation(rand::random::<f32>() * 2.0 * PI);
-        airdrop_transform.0 = airdrop_transform.translated(Vector2::UP * 3000.0);
+        airdrop_transform.0 = airdrop_transform.translated(Vector2::UP * 2000.0);
         airdrop_transform.set_rotation(0.0);
 
         info!("dropping airdrop at {:?}", airdrop_transform.origin);
@@ -208,4 +210,17 @@ fn item_pickup_text(
         let mut text = text.single_mut();
         text.get::<Label>().set_text("");
     }
+}
+
+fn on_restart(
+    mut airdrops: Query<&mut ErasedGodotRef, With<AirDrop>>,
+    mut airdrop_timer: ResMut<AirDropTimer>,
+) {
+    for mut airdrop in airdrops.iter_mut() {
+        airdrop.get::<Node>().queue_free();
+    }
+
+    airdrop_timer.0.reset();
+    let timer_duration = airdrop_timer.0.duration();
+    airdrop_timer.0.tick(timer_duration / 2);
 }

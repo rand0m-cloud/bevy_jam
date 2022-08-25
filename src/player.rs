@@ -174,36 +174,47 @@ fn move_player(
             .unwrap()
             .assume_safe()
     };
+    let distance = body.transform().origin.distance_to(goal);
 
-    let goal_reached = match *activity {
+    match *activity {
         Activity::Ducking => {
             stop(body);
-            return;
         }
         Activity::Standing => {
             stop(body);
             turn_toward(body, target);
-            return;
         }
         Activity::Walking => {
-            turn_toward(body, goal);
-            advance(body, goal, WALKING_SPEED)
+            let deviation = turn_toward(body, goal);
+            if deviation.abs() > 1.0 {
+                advance(body, 0.0)
+            } else {
+                advance(body, WALKING_SPEED)
+            };
+            debug!("Distance is {distance:?}.");
+            if distance < 2.0 {
+                debug!("Goal reached. Stop.");
+                *activity = Activity::Ducking;
+                debug!("Now {activity:?}");
+            }
         }
         Activity::Running => {
-            turn_toward(body, goal);
-            advance(body, goal, RUNNING_SPEED)
+            let deviation = turn_toward(body, goal);
+            if deviation.abs() > 1.0 {
+                advance(body, WALKING_SPEED)
+            } else {
+                advance(body, RUNNING_SPEED)
+            };
+            if distance < 30.0 {
+                debug!("Approaching the goal. Slowing down.");
+                *activity = Activity::Walking;
+                debug!("Now {activity:?}");
+            }
         }
     };
-
-    if goal_reached {
-        debug!("Goal reached. Stop.");
-        stop(body);
-        *activity = Activity::Ducking;
-        debug!("Now {activity:?}");
-    }
 }
 
-fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2) {
+fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2) -> f64 {
     let transform = body.transform();
 
     let goal_relative_position = transform.xform_inv(goal);
@@ -213,15 +224,12 @@ fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2) {
     let turn = -TURNING_SPEED * angle;
 
     body.set_angular_velocity(turn);
+
+    angle
 }
 
-fn advance(body: TRef<Physics2DDirectBodyState>, goal: Vector2, speed: f32) -> bool {
-    let transform = body.transform();
-
-    body.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * speed);
-
-    // Is the goal reached?
-    transform.origin.distance_to(goal) < 1.0
+fn advance(body: TRef<Physics2DDirectBodyState>, speed: f32) {
+    body.set_linear_velocity(body.transform().basis_xform_inv(Vector2::UP) * speed);
 }
 
 fn stop(body: TRef<Physics2DDirectBodyState>) {

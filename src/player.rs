@@ -25,7 +25,8 @@ impl Plugin for PlayerPlugin {
                     .run_in_state(GameState::Playing),
             )
             .add_system(setup_bullet.as_physics_system())
-            .add_system(damage_bullet);
+            .add_system(damage_bullet)
+            .add_exit_system(GameState::GameOver, on_restart);
     }
 }
 
@@ -35,6 +36,25 @@ pub struct Player {
     pub ammo_count: u32,
 }
 
+impl Default for Player {
+    fn default() -> Self {
+        // setup initial inventory with parts for one alarm or drone
+        let mut inventory = Inventory::default();
+        inventory.add_parts(&Item::Alarm.ingredients());
+        inventory.add_part(Part::Motor);
+
+        Player {
+            inventory,
+            ammo_count: 10,
+        }
+    }
+}
+
+impl Player {
+    fn reset(&mut self) {
+        *self = Self::default();
+    }
+}
 #[derive(Debug, Component)]
 pub struct PlayerInteractVolume;
 
@@ -50,15 +70,7 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
         .find_map(|(name, ent)| (name.as_str() == "Player").then_some(ent))
         .unwrap();
 
-    // setup initial inventory with parts for one alarm or drone
-    let mut inventory = Inventory::default();
-    inventory.add_parts(&Item::Alarm.ingredients());
-    inventory.add_part(Part::Motor);
-
-    commands.entity(player_ent).insert(Player {
-        inventory,
-        ammo_count: 10,
-    });
+    commands.entity(player_ent).insert(Player::default());
 
     let player_interact_ent = entities
         .iter()
@@ -158,4 +170,9 @@ fn damage_bullet(
         let bullet = bullet.get::<Node>();
         bullet.queue_free();
     }
+}
+
+fn on_restart(mut player: Query<&mut Player>) {
+    let mut player = player.single_mut();
+    player.reset();
 }

@@ -52,6 +52,10 @@ impl Item {
         }
     }
 
+    pub fn as_texture_path(&self) -> &'static str {
+        "res://icon.png"
+    }
+
     pub fn ingredients(&self) -> Vec<Part> {
         use Part::*;
 
@@ -118,5 +122,9 @@ impl Inventory {
         for part in parts {
             self.add_part(*part);
         }
+    }
+
+    pub fn get_items(&self) -> &HashMap<Item, u32> {
+        &self.items
     }
 }

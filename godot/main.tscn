@@ -87,22 +87,21 @@ margin_right = 396.0
 margin_bottom = 96.0
 
 [node name="ItemSlot1" parent="CanvasLayer/ItemBar/HBoxContainer" instance=ExtResource( 4 )]
-margin_right = 96.0
 margin_bottom = 96.0
 
 [node name="ItemSlot2" parent="CanvasLayer/ItemBar/HBoxContainer" instance=ExtResource( 4 )]
-margin_left = 100.0
-margin_right = 196.0
+margin_left = 68.0
+margin_right = 132.0
 margin_bottom = 96.0
 
 [node name="ItemSlot3" parent="CanvasLayer/ItemBar/HBoxContainer" instance=ExtResource( 4 )]
-margin_left = 200.0
-margin_right = 296.0
+margin_left = 136.0
+margin_right = 200.0
 margin_bottom = 96.0
 
 [node name="ItemSlot4" parent="CanvasLayer/ItemBar/HBoxContainer" instance=ExtResource( 4 )]
-margin_left = 300.0
-margin_right = 396.0
+margin_left = 204.0
+margin_right = 268.0
 margin_bottom = 96.0
 
 [node name="Level" parent="." instance=ExtResource( 3 )]

@@ -40,8 +40,13 @@ fn update_score_timer(
     mut score: ResMut<Score>,
     mut time: SystemDelta,
     mut score_timer: ResMut<ScoreTimer>,
+    state: Res<CurrentState<GameState>>,
 ) {
     let delta = time.delta();
+
+    if state.0 != GameState::Playing {
+        return;
+    }
 
     score_timer.0.tick(delta);
     if score_timer.0.just_finished() {

@@ -97,8 +97,13 @@ fn drop_airdrops(
     mut airdrop_timer: ResMut<AirDropTimer>,
     player: Query<&Transform2D, With<Player>>,
     mut progress_bar: Query<&mut ErasedGodotRef, With<AirDropProgressBar>>,
+    state: Res<CurrentState<GameState>>,
 ) {
     let delta = time.delta();
+
+    if state.0 != GameState::Playing {
+        return;
+    }
 
     airdrop_timer.0.tick(delta);
 

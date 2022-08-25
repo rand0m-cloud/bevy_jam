@@ -14,7 +14,7 @@ use iyes_loopless::prelude::*;
 // TODO: Is there a way to set those in Godot and read them here? It would be nice to be able to experiment with constants on the fly.
 const WALKING_SPEED: f32 = 40.0;
 const RUNNING_SPEED: f32 = 100.0;
-const ROTATION_SPEED: f32 = 4.0;
+const ROTATION_SPEED: f64 = 4.0;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -158,13 +158,11 @@ fn move_player(
     mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
     goal: Query<&Transform2D, (With<Goal>, Without<Target>)>,
     target: Query<&Transform2D, With<Target>>,
-    mut time: SystemDelta,
     // HACK: this system accesses the physics server and needs to be run on the
     // main thread. this system param will force this system to be run on the
     // main thread
     _scene_tree: SceneTreeRef,
 ) {
-    let delta = time.delta_seconds();
     let (mut player, mut activity) = player.single_mut();
     let goal = goal.single().origin;
     let target = target.single().origin;
@@ -184,15 +182,15 @@ fn move_player(
         }
         Activity::Standing => {
             stop(body);
-            turn_toward(body, target, delta);
+            turn_toward(body, target);
             return;
         }
         Activity::Walking => {
-            turn_toward(body, goal, delta);
+            turn_toward(body, goal);
             advance(body, goal, WALKING_SPEED)
         }
         Activity::Running => {
-            turn_toward(body, goal, delta);
+            turn_toward(body, goal);
             advance(body, goal, RUNNING_SPEED)
         }
     };
@@ -205,15 +203,12 @@ fn move_player(
     }
 }
 
-fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2, delta: f32) {
-    // TODO: Pass body as an argument to avoid repeating?
-    let mut transform = body.transform();
+fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2) {
+    let transform = body.transform();
 
     let goal_relative_position = transform.xform_inv(goal);
 
     let angle = goal_relative_position.angle_to(Vector2::UP);
-
-    debug!("Turning toward {angle:?}");
 
     let turn = if angle.abs() < 0.05 {
         0.0
@@ -223,17 +218,13 @@ fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2, delta: f32) 
         -1.0
     };
 
-    let rotation = transform.rotation();
-    transform.set_rotation(rotation + ROTATION_SPEED * turn * delta);
-    body.set_transform(transform);
+    body.set_angular_velocity(ROTATION_SPEED * turn);
 }
 
 fn advance(body: TRef<Physics2DDirectBodyState>, goal: Vector2, speed: f32) -> bool {
     let transform = body.transform();
 
     body.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * speed);
-    body.set_angular_velocity(0.0); // TODO: What's that for?
-    body.set_transform(transform);
 
     // Is the goal reached?
     transform.origin.distance_to(goal) < 1.0

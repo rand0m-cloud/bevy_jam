@@ -14,7 +14,7 @@ use iyes_loopless::prelude::*;
 // TODO: Is there a way to set those in Godot and read them here? It would be nice to be able to experiment with constants on the fly.
 const WALKING_SPEED: f32 = 40.0;
 const RUNNING_SPEED: f32 = 100.0;
-const ROTATION_SPEED: f64 = 4.0;
+const TURNING_SPEED: f64 = 4.0;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -208,17 +208,11 @@ fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2) {
 
     let goal_relative_position = transform.xform_inv(goal);
 
-    let angle = goal_relative_position.angle_to(Vector2::UP);
+    let angle = goal_relative_position.angle_to(Vector2::UP) as f64;
 
-    let turn = if angle.abs() < 0.05 {
-        0.0
-    } else if goal_relative_position.x >= 0.0 {
-        1.0
-    } else {
-        -1.0
-    };
+    let turn = -TURNING_SPEED * angle;
 
-    body.set_angular_velocity(ROTATION_SPEED * turn);
+    body.set_angular_velocity(turn);
 }
 
 fn advance(body: TRef<Physics2DDirectBodyState>, goal: Vector2, speed: f32) -> bool {

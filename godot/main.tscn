@@ -105,6 +105,16 @@ margin_left = 204.0
 margin_right = 268.0
 margin_bottom = 96.0
 
+[node name="ScoreLabel" type="Label" parent="CanvasLayer"]
+margin_left = 540.0
+margin_right = 640.0
+margin_bottom = 34.0
+rect_min_size = Vector2( 100, 0 )
+rect_scale = Vector2( 2, 2 )
+text = "Score: 0"
+align = 1
+valign = 1
+
 [node name="Level" parent="." instance=ExtResource( 3 )]
 position = Vector2( 91, 10 )
 

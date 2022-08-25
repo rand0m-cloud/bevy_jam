@@ -14,6 +14,7 @@ fn init(_handle: &InitHandle) {}
 
 fn build_app(app: &mut App) {
     app.add_loopless_state(GameState::Playing)
+        .insert_resource(Score(0))
         .add_plugin(player::PlayerPlugin)
         .add_plugin(zombies::ZombiesPlugin)
         .add_plugin(airdrops::AirDropsPlugin)
@@ -25,6 +26,8 @@ bevy_godot_init!(init, build_app);
 
 #[derive(Debug, Component)]
 pub struct Hp(f32);
+
+pub struct Score(pub u64);
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {

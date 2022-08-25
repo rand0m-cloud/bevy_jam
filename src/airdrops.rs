@@ -1,3 +1,4 @@
+use crate::Score;
 use crate::{
     crafting::Part,
     player::{Player, PlayerInteractVolume},
@@ -125,6 +126,7 @@ fn collect_airdrops(
     mut airdrop_timer: ResMut<AirDropTimer>,
     mut item_pickup_text: Query<&mut ErasedGodotRef, (Without<AirDrop>, With<ItemPickupText>)>,
     mut item_pickup_timer: ResMut<ItemPickupTextTimer>,
+    mut score: ResMut<Score>,
 ) {
     let player_interact_volume = player_interact_volume.single();
 
@@ -147,6 +149,8 @@ fn collect_airdrops(
 
             airdrop_timer.0.reset();
             item_pickup_timer.0.reset();
+
+            score.0 += 250;
         }
     }
 }

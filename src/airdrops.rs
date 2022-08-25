@@ -82,9 +82,11 @@ fn label_airdrops(
 ) {
     for (groups, ent) in entities.iter() {
         if groups.is("airdrop") {
-            commands
-                .entity(ent)
-                .insert(AirDrop(vec![Part::random(), Part::random()]));
+            commands.entity(ent).insert(AirDrop(vec![
+                Part::random(),
+                Part::random(),
+                Part::random(),
+            ]));
         }
     }
 }

@@ -47,7 +47,7 @@ impl Default for Player {
 
         Player {
             inventory,
-            ammo_count: 10,
+            ammo_count: 15,
         }
     }
 }

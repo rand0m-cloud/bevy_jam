@@ -15,7 +15,7 @@ use std::f32::consts::PI;
 // TODO: Is there a way to set those in Godot and read them here? It would be nice to be able to experiment with constants on the fly.
 const WALKING_SPEED: f32 = 40.0;
 const RUNNING_SPEED: f32 = 100.0;
-const ROTATION_SPEED: f32 = 2.0;
+const ROTATION_SPEED: f32 = 4.0;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -23,11 +23,13 @@ impl Plugin for PlayerPlugin {
         app.add_startup_system(label_player)
             .add_startup_system(label_shot_audio)
             .add_startup_system(label_goal)
+            .add_startup_system(label_target)
             .add_system(
                 move_player
                     .as_physics_system()
                     .run_in_state(GameState::Playing),
             )
+            .add_system(aim.as_physics_system().run_in_state(GameState::Playing))
             .add_system(
                 set_goal
                     .as_physics_system()
@@ -86,6 +88,12 @@ pub struct PlayerInteractVolume;
 #[derive(Debug, Component)]
 struct Goal;
 
+// A target represents a point where the player wants throw or shoot
+// Note that the actual direction is wherever the player character is facing.
+// Player need to wait for the character to turn before shooting.
+#[derive(Debug, Component)]
+struct Target;
+
 #[derive(Debug, Component, PartialEq, Eq)]
 pub enum Activity {
     Ducking,
@@ -138,9 +146,19 @@ fn label_goal(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands.entity(goal).insert(Goal);
 }
 
+fn label_target(mut commands: Commands, entities: Query<(&Name, Entity)>) {
+    let target = entities
+        .iter()
+        .find_map(|(name, ent)| (name.as_str() == "AimTarget").then_some(ent))
+        .unwrap();
+
+    commands.entity(target).insert(Target);
+}
+
 fn move_player(
     mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
-    goal: Query<&Transform2D, With<Goal>>,
+    goal: Query<&Transform2D, (With<Goal>, Without<Target>)>,
+    target: Query<&Transform2D, With<Target>>,
     mut time: SystemDelta,
     // HACK: this system accesses the physics server and needs to be run on the
     // main thread. this system param will force this system to be run on the
@@ -150,6 +168,7 @@ fn move_player(
     let delta = time.delta_seconds();
     let (mut player, mut activity) = player.single_mut();
     let goal = goal.single();
+    let target = target.single();
 
     let goal_reached = match *activity {
         Activity::Ducking => {
@@ -157,8 +176,8 @@ fn move_player(
             return;
         }
         Activity::Standing => {
-            // TODO: Implement aiming
             stop(&mut player);
+            turn_toward(&mut player, target.origin, delta);
             return;
         }
         Activity::Walking => advance(&mut player, goal.origin, WALKING_SPEED, delta),
@@ -169,7 +188,38 @@ fn move_player(
         debug!("Goal reached. Stop.");
         stop(&mut player);
         *activity = Activity::Ducking;
+        debug!("Now {activity:?}");
     }
+}
+
+fn turn_toward(player: &mut ErasedGodotRef, goal: Vector2, delta: f32) {
+    // TODO: Pass body as an argument to avoid repeating?
+    let physics_server = unsafe { Physics2DServer::godot_singleton() };
+    let direct_body_state = unsafe {
+        physics_server
+            .body_get_direct_state(player.get::<RigidBody2D>().get_rid())
+            .unwrap()
+            .assume_safe()
+    };
+    let mut transform = direct_body_state.transform();
+
+    let goal_relative_position = transform.xform_inv(goal);
+
+    let angle = goal_relative_position.angle_to(Vector2::UP);
+
+    debug!("Turning toward {angle:?}");
+
+    let turn = if angle.abs() < 0.05 {
+        0.0
+    } else if goal_relative_position.x >= 0.0 {
+        1.0
+    } else {
+        -1.0
+    };
+
+    let rotation = transform.rotation();
+    transform.set_rotation(rotation + ROTATION_SPEED * turn * delta);
+    direct_body_state.set_transform(transform);
 }
 
 fn advance(player: &mut ErasedGodotRef, goal: Vector2, speed: f32, delta: f32) -> bool {
@@ -217,6 +267,26 @@ fn stop(player: &mut ErasedGodotRef) {
 
     direct_body_state.set_linear_velocity(Vector2::ZERO);
     direct_body_state.set_angular_velocity(0.0);
+}
+
+fn aim(
+    mut target: Query<(&mut ErasedGodotRef, &mut Transform2D), (With<Target>, Without<Player>)>,
+    mut player: Query<(&mut ErasedGodotRef, &mut Activity), (With<Player>, Without<Target>)>,
+) {
+    let input = Input::godot_singleton();
+    let (mut player, mut activity) = player.single_mut();
+    let (mut target, mut transform) = target.single_mut();
+    let player = player.get::<Node2D>();
+
+    if input.is_action_pressed("aim", false) {
+        // TODO: Getting mouse position from player seems odd. Isn't there a more obvious way?
+        let mouse_position = player.get_global_mouse_position();
+        debug!("New target is {mouse_position:?}");
+        transform.origin = mouse_position;
+        target.get::<Node2D>().set_visible(true);
+        *activity = Activity::Standing;
+        debug!("Now {activity:?}");
+    }
 }
 
 fn set_goal(
@@ -275,21 +345,16 @@ fn toggle_ducking(mut activity: Query<&mut Activity, With<Player>>) {
 
 fn player_shoot(
     mut commands: Commands,
-    mut player: Query<(&mut Player, &mut ErasedGodotRef, &Transform2D)>,
+    mut target: Query<&mut ErasedGodotRef, (With<Target>, Without<Player>)>,
+    mut player: Query<(&mut Player, &Transform2D, &mut Activity)>,
 ) {
     let input = Input::godot_singleton();
-    let (mut player, mut player_reference, player_transform) = player.single_mut();
-    let player_reference = player_reference.get::<Node2D>();
+    let (mut player, player_transform, mut activity) = player.single_mut();
+    let mut target = target.single_mut();
 
-    if input.is_action_just_pressed("fire_weapon", false) && player.ammo_count > 0 {
-        let mouse_dir = player_reference.get_local_mouse_position().normalized();
-
-        let mut bullet_transform = *player_transform;
-        bullet_transform.origin = player_transform.xform(mouse_dir * 50.0);
-
-        let bullet_rotation = bullet_transform.rotation() - mouse_dir.angle() + PI / 2.0;
-        bullet_transform.set_rotation(bullet_rotation);
-
+    if input.is_action_just_released("aim", false) {
+        debug!("Shoot!");
+        let bullet_transform = *player_transform;
         commands
             .spawn()
             .insert(GodotScene::from_path("res://Bullet.tscn"))
@@ -297,6 +362,10 @@ fn player_shoot(
             .insert(bullet_transform);
 
         player.ammo_count -= 1;
+
+        target.get::<Node2D>().set_visible(false);
+        *activity = Activity::Ducking;
+        debug!("Now {activity:?}");
     }
 }
 

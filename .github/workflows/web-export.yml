@@ -68,6 +68,9 @@ jobs:
           mkdir -v -p export/html5
           cd godot/
           godot -v --export-debug "HTML5" ../export/html5/${EXPORT_NAME}.html
+
+          cd ..
+          cp target/wasm32-unknown-emscripten/debug/bevy_jam.wasm export/html5/debug_game_lib.wasm
       - name: Upload Artifact
         uses: actions/upload-artifact@v2
         with:

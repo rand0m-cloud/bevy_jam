@@ -124,6 +124,7 @@ fn zombies_move(
     // main thread. this system param will force this system to be run on the
     // main thread
     _scene_tree: SceneTreeRef,
+    state: Res<CurrentState<GameState>>,
 ) {
     let delta = time.delta_seconds();
     for (Target(target), mut reference) in zombies.iter_mut() {
@@ -135,21 +136,26 @@ fn zombies_move(
                 .assume_safe()
         };
 
-        let mut transform = direct_body_state.transform();
+        if state.0 != GameState::Sheltered {
+            let mut transform = direct_body_state.transform();
 
-        let target_relative_position = transform.xform_inv(*target);
-        let turn = if target_relative_position.x >= 0.0 {
-            1.0
+            let target_relative_position = transform.xform_inv(*target);
+            let turn = if target_relative_position.x >= 0.0 {
+                1.0
+            } else {
+                -1.0
+            };
+
+            let rotation = transform.rotation();
+            transform.set_rotation(rotation + 1.0 * turn * delta);
+
+            direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * 70.0);
+            direct_body_state.set_angular_velocity(0.0);
+            direct_body_state.set_transform(transform);
         } else {
-            -1.0
-        };
-
-        let rotation = transform.rotation();
-        transform.set_rotation(rotation + 1.0 * turn * delta);
-
-        direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * 70.0);
-        direct_body_state.set_angular_velocity(0.0);
-        direct_body_state.set_transform(transform);
+            direct_body_state.set_linear_velocity(Vector2::ZERO);
+            direct_body_state.set_angular_velocity(0.0);
+        }
     }
 }
 

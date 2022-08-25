@@ -141,7 +141,7 @@ fn collect_airdrops(
             let mut text = text_label.text().to_string();
 
             for part in air_drop.0.iter() {
-                write!(&mut text, "Picked up a {part:?}\n").unwrap();
+                writeln!(&mut text, "Picked up a {part:?}").unwrap();
             }
             text_label.set_text(text);
 

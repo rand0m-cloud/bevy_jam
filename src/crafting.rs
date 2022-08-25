@@ -16,9 +16,9 @@ impl Part {
     pub const ALL: &'static [Part] = &[
         Self::Battery,
         Self::Electronics,
-        Self::Buzzer,
+        //Self::Buzzer,
         Self::Explosive,
-        Self::Motor,
+        //Self::Motor,
     ];
 
     pub fn random() -> Self {
@@ -54,6 +54,13 @@ impl Item {
 
     pub fn as_texture_path(&self) -> &'static str {
         "res://icon.png"
+    }
+
+    pub fn scene_path(&self) -> &'static str {
+        match self {
+            Self::ProximityBomb => "res://traps/ProximityBomb.tscn",
+            _ => panic!("do not have a scene path for {:?}", self),
+        }
     }
 
     pub fn ingredients(&self) -> Vec<Part> {
@@ -126,5 +133,13 @@ impl Inventory {
 
     pub fn get_items(&self) -> &HashMap<Item, u32> {
         &self.items
+    }
+
+    pub fn use_item(&mut self, item: &Item) {
+        if let Some(count) = self.items.get_mut(item) {
+            *count -= 1;
+        } else {
+            warn!("tried to use item: {:?} but did not have any", item);
+        }
     }
 }

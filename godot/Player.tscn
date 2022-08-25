@@ -22,7 +22,7 @@
 [ext_resource path="res://art/survivor/move/move_17.png" type="Texture" id=20]
 
 [sub_resource type="CircleShape2D" id=1]
-radius = 30.0
+radius = 50.0
 
 [sub_resource type="SpriteFrames" id=2]
 animations = [ {

@@ -1,4 +1,4 @@
-use crate::player::Player;
+use crate::{player::Player, SelectedItemSlot};
 use bevy_godot::prelude::{
     bevy_prelude::Changed,
     godot_prelude::{Color, Null},
@@ -11,8 +11,7 @@ impl Plugin for ItemBarUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(label_item_bar_nodes)
             .add_system(update_item_bar.as_visual_system())
-            .add_system(update_selected_slot.as_visual_system())
-            .insert_resource(SelectedItemSlot(None));
+            .add_system(update_selected_slot.as_visual_system());
     }
 }
 
@@ -21,8 +20,6 @@ pub struct ItemSlotTexture(u16);
 
 #[derive(Component)]
 pub struct ItemSlotBackground(u16);
-
-pub struct SelectedItemSlot(Option<u16>);
 
 fn label_item_bar_nodes(
     mut commands: Commands,
@@ -96,6 +93,7 @@ fn update_item_bar(
             .inventory
             .get_items()
             .iter()
+            .filter(|(_, count)| **count > 0)
             .zip(item_bar_texture_ents.iter())
             .for_each(|((item, _count), (_texture, texture_ent))| {
                 item_bar_count += 1;

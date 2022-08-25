@@ -1,6 +1,8 @@
-use crate::crafting::{Inventory, Item, Part};
-use crate::Hp;
-use crate::{zombies::Zombie, GameState};
+use crate::{
+    crafting::{Inventory, Item},
+    zombies::Zombie,
+    GameState, Hp, SelectedItemSlot,
+};
 use bevy_godot::prelude::{
     bevy_prelude::{Added, With, Without},
     godot_prelude::Vector2,
@@ -26,6 +28,7 @@ impl Plugin for PlayerPlugin {
             )
             .add_system(setup_bullet.as_physics_system())
             .add_system(damage_bullet)
+            .add_system(place_trap.as_physics_system())
             .add_exit_system(GameState::GameOver, on_restart);
     }
 }
@@ -38,10 +41,9 @@ pub struct Player {
 
 impl Default for Player {
     fn default() -> Self {
-        // setup initial inventory with parts for one alarm or drone
+        // setup initial inventory with parts for a bomb
         let mut inventory = Inventory::default();
-        inventory.add_parts(&Item::Alarm.ingredients());
-        inventory.add_part(Part::Motor);
+        inventory.add_parts(&Item::ProximityBomb.ingredients());
 
         Player {
             inventory,
@@ -169,6 +171,37 @@ fn damage_bullet(
 
         let bullet = bullet.get::<Node>();
         bullet.queue_free();
+    }
+}
+
+fn place_trap(
+    mut commands: Commands,
+    mut player: Query<(&mut Player, &Transform2D)>,
+    selected_slot: Res<SelectedItemSlot>,
+) {
+    let input = Input::godot_singleton();
+
+    if input.is_action_just_pressed("place_trap", false) {
+        let (mut player, player_transform) = player.single_mut();
+
+        if let Some(slot) = selected_slot.0 {
+            let mut items = player
+                .inventory
+                .get_items()
+                .iter()
+                .filter(|(_, count)| **count > 0)
+                .skip(slot as usize);
+            if let Some((item, _count)) = items.next().map(|(item, count)| (*item, *count)) {
+                player.inventory.use_item(&item);
+
+                commands
+                    .spawn()
+                    .insert(GodotScene::from_path(item.scene_path()))
+                    .insert(Transform2D(
+                        GodotTransform2D::IDENTITY.translated(player_transform.origin),
+                    ));
+            }
+        }
     }
 }
 

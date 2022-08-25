@@ -115,6 +115,14 @@ text = "Score: 0"
 align = 1
 valign = 1
 
+[node name="AmmoLabel" type="Label" parent="CanvasLayer"]
+margin_left = 80.0
+margin_top = 575.0
+margin_right = 198.0
+margin_bottom = 589.0
+text = "Ammo Remaining: 0"
+valign = 1
+
 [node name="Level" parent="." instance=ExtResource( 3 )]
 position = Vector2( 91, 10 )
 

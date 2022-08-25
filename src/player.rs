@@ -32,6 +32,7 @@ impl Plugin for PlayerPlugin {
 #[derive(Debug, Component)]
 pub struct Player {
     pub inventory: Inventory,
+    pub ammo_count: u32,
 }
 
 #[derive(Debug, Component)]
@@ -54,7 +55,10 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     inventory.add_parts(&Item::Alarm.ingredients());
     inventory.add_part(Part::Motor);
 
-    commands.entity(player_ent).insert(Player { inventory });
+    commands.entity(player_ent).insert(Player {
+        inventory,
+        ammo_count: 10,
+    });
 
     let player_interact_ent = entities
         .iter()
@@ -98,14 +102,14 @@ fn move_player(mut player: Query<(&Player, &mut Transform2D)>, mut time: SystemD
 
 fn player_shoot(
     mut commands: Commands,
-    mut player: Query<(&mut ErasedGodotRef, &Transform2D), With<Player>>,
+    mut player: Query<(&mut Player, &mut ErasedGodotRef, &Transform2D)>,
 ) {
     let input = Input::godot_singleton();
-    let (mut player, player_transform) = player.single_mut();
-    let player = player.get::<Node2D>();
+    let (mut player, mut player_reference, player_transform) = player.single_mut();
+    let player_reference = player_reference.get::<Node2D>();
 
-    if input.is_action_just_pressed("fire_weapon", false) {
-        let mouse_dir = player.get_local_mouse_position().normalized();
+    if input.is_action_just_pressed("fire_weapon", false) && player.ammo_count > 0 {
+        let mouse_dir = player_reference.get_local_mouse_position().normalized();
 
         let mut bullet_transform = *player_transform;
         bullet_transform.origin = player_transform.xform(mouse_dir * 50.0);
@@ -118,6 +122,8 @@ fn player_shoot(
             .insert(GodotScene::from_path("res://Bullet.tscn"))
             .insert(Bullet)
             .insert(bullet_transform);
+
+        player.ammo_count -= 1;
     }
 }
 

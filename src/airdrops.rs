@@ -144,15 +144,20 @@ fn collect_airdrops(
             let text_label = text_label.get::<Label>();
             let mut text = text_label.text().to_string();
 
+            let bullets = 25;
+
             for part in air_drop.0.iter() {
                 writeln!(&mut text, "Picked up a {part:?}").unwrap();
             }
+            writeln!(&mut text, "Picked up {} bullets", bullets).unwrap();
+
             text_label.set_text(text);
 
             airdrop_timer.0.reset();
             item_pickup_timer.0.reset();
 
             score.0 += 250;
+            player.ammo_count += bullets;
         }
     }
 }

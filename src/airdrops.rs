@@ -111,7 +111,7 @@ fn drop_airdrops(
         let mut airdrop_transform = *player.single();
 
         airdrop_transform.set_rotation(rand::random::<f32>() * 2.0 * PI);
-        airdrop_transform.0 = airdrop_transform.translated(Vector2::UP * 2000.0);
+        airdrop_transform.0 = airdrop_transform.translated(Vector2::UP * 1500.0);
         airdrop_transform.set_rotation(0.0);
 
         info!("dropping airdrop at {:?}", airdrop_transform.origin);

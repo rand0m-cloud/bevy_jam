@@ -2,7 +2,7 @@ name: Godot build and exports
 on: [push, pull_request]
 
 env:
-  GODOT_VERSION: 3.3
+  GODOT_VERSION: 3.4.2
   EXPORT_NAME: Game
   CARGO_TERM_COLOR: always
   EMSDK_VERSION: 2.0.17
@@ -12,7 +12,7 @@ jobs:
     name: HTML5 export
     runs-on: ubuntu-latest
     container:
-      image: barichello/godot-ci:3.3
+      image: barichello/godot-ci:3.4.2
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -45,8 +45,8 @@ jobs:
           command: build
           args: --target wasm32-unknown-emscripten --release
         env:
-          RUSTFLAGS: -C link-args=-fPIC -C relocation-model=pic
-          EMMAKEN_CFLAGS: -s SIDE_MODULE=1 -shared -Wl,--no-check-features -all
+          RUSTFLAGS: -C link-args=-fPIC -C relocation-model=pic -C target-feature=+mutable-globals
+          EMMAKEN_CFLAGS: -s SIDE_MODULE=1 -Os
           C_INCLUDE_PATH: ${{env.EMSDK}}/upstream/emscripten/cache/sysroot/include/
           # Optimize for size
           CARGO_PROFILE_RELEASE_OPT_LEVEL: s

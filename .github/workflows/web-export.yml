@@ -71,5 +71,5 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: HTML5
-          path: exports/web
+          path: export/html5
           retention-days: 14

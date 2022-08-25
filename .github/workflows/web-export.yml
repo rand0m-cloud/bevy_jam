@@ -1,0 +1,73 @@
+name: Godot build and exports
+on: [push, pull_request]
+
+env:
+  GODOT_VERSION: 3.3
+  EXPORT_NAME: Game
+  CARGO_TERM_COLOR: always
+  EMSDK_VERSION: 2.0.17
+
+jobs:
+  export-html:
+    name: HTML5 export
+    runs-on: ubuntu-latest
+    container:
+      image: barichello/godot-ci:3.3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup godot templates
+        run: |
+          mkdir -v -p ~/.local/share/godot/templates
+          mv /root/.local/share/godot/templates/${GODOT_VERSION}.stable ~/.local/share/godot/templates/${GODOT_VERSION}.stable
+      - name: Install emscripten rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: wasm32-unknown-emscripten
+          profile: minimal
+
+      - name: Install build essentials
+        run: apt-get update && apt-get install -y --no-install-recommends build-essential clang python3 xz-utils
+
+      - name: Setup emscripten sdk
+        uses: mymindstorm/setup-emsdk@v10
+        with:
+          version: ${{env.EMSDK_VERSION}}
+      - name: HACK - Add an option to wasm-opt
+        run: |
+          mv ${{env.EMSDK}}/upstream/bin/wasm-opt ${{env.EMSDK}}/upstream/bin/wasm-opt-bak
+          chmod +x emcc-test/wasm-opt
+          cp emcc-test/wasm-opt ${{env.EMSDK}}/upstream/bin/wasm-opt
+      - name: Compile native lib for wasm
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --manifest-path native/src/Cargo.toml --target wasm32-unknown-emscripten --release
+        env:
+          RUSTFLAGS: -C link-args=-fPIC -C relocation-model=pic
+          EMMAKEN_CFLAGS: -s SIDE_MODULE=1 -shared -Wl,--no-check-features -all
+          C_INCLUDE_PATH: ${{env.EMSDK}}/upstream/emscripten/cache/sysroot/include/
+          CARGO_TARGET_DIR: native/target
+          # Optimize for size
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: s
+          # No overflow check / assertions
+          CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS: false
+          CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS: false
+          # Link time optimisations (to reduce size)
+          CARGO_PROFILE_RELEASE_LTO: true
+          # Don't unwind the stack
+          CARGO_PROFILE_RELEASE_PANIC: abort
+          # Use my wrapper to extract the rlib
+          CARGO_TARGET_WASM32_UNKNOWN_EMSCRIPTEN_LINKER: ${{github.workspace}}/emcc-test/emcc-test
+
+      - name: Build
+        run: |
+          mkdir -v -p exports/web
+          godot -v --export-debug "HTML5" exports/web/${EXPORT_NAME}.html
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: HTML5
+          path: exports/web
+          retention-days: 14

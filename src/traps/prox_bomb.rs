@@ -43,7 +43,7 @@ fn process_proximity_bombs(
             }
         } else if !collisions.recent_collisions().is_empty() {
             info!("proximity bomb is armed");
-            bomb.0 = Some(Timer::from_seconds(2.0, false));
+            bomb.0 = Some(Timer::from_seconds(3.0, false));
         }
     }
 }

@@ -1,5 +1,6 @@
-use crate::Score;
+use crate::{GameState, Score};
 use bevy_godot::prelude::{bevy_prelude::With, *};
+use iyes_loopless::prelude::*;
 
 pub struct ScoreUiPlugin;
 impl Plugin for ScoreUiPlugin {
@@ -7,7 +8,8 @@ impl Plugin for ScoreUiPlugin {
         app.insert_resource(ScoreTimer(Timer::from_seconds(2.5, true)))
             .add_startup_system(label_score_ui)
             .add_system(update_score_ui.as_visual_system())
-            .add_system(update_score_timer.as_visual_system());
+            .add_system(update_score_timer.as_visual_system())
+            .add_exit_system(GameState::GameOver, reset_score);
     }
 }
 
@@ -45,4 +47,9 @@ fn update_score_timer(
     if score_timer.0.just_finished() {
         score.0 += 50;
     }
+}
+
+fn reset_score(mut score: ResMut<Score>, mut score_timer: ResMut<ScoreTimer>) {
+    score.0 = 0;
+    score_timer.0.reset();
 }

@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use crate::{
     player::{Player, PlayerInteractVolume},
-    GameState, Hp,
+    GameState, Hp, Score,
 };
 use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
 use iyes_loopless::prelude::*;
@@ -173,11 +173,16 @@ fn zombie_targeting(
     }
 }
 
-fn kill_zombies(mut zombies: Query<(&Hp, &mut ErasedGodotRef), With<Zombie>>) {
+fn kill_zombies(
+    mut zombies: Query<(&Hp, &mut ErasedGodotRef), With<Zombie>>,
+    mut score: ResMut<Score>,
+) {
     for (hp, mut zombie) in zombies.iter_mut() {
         if hp.0 <= 0.0 {
             let zombie = zombie.get::<Node>();
             zombie.queue_free();
+
+            score.0 += 100;
         }
     }
 }

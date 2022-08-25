@@ -2,7 +2,7 @@ use crate::crafting::{Inventory, Item, Part};
 use crate::Hp;
 use crate::{zombies::Zombie, GameState};
 use bevy_godot::prelude::{
-    bevy_prelude::{Added, With},
+    bevy_prelude::{Added, With, Without},
     godot_prelude::Vector2,
     *,
 };
@@ -13,6 +13,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(label_player)
+            .add_startup_system(label_shot_audio)
             .add_system(
                 move_player
                     .as_physics_system()
@@ -37,6 +38,9 @@ pub struct Player {
 pub struct PlayerInteractVolume;
 
 #[derive(Debug, Component)]
+struct ShotAudio;
+
+#[derive(Debug, Component)]
 pub struct Bullet;
 
 fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
@@ -59,6 +63,15 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands
         .entity(player_interact_ent)
         .insert(PlayerInteractVolume);
+}
+
+fn label_shot_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
+    let goal = entities
+        .iter()
+        .find_map(|(name, ent)| (name.as_str() == "ShotAudio").then_some(ent))
+        .unwrap();
+
+    commands.entity(goal).insert(ShotAudio);
 }
 
 fn move_player(mut player: Query<(&Player, &mut Transform2D)>, mut time: SystemDelta) {
@@ -108,10 +121,15 @@ fn player_shoot(
     }
 }
 
-fn setup_bullet(mut bullets: Query<(&mut ErasedGodotRef, &Transform2D), Added<Bullet>>) {
+fn setup_bullet(
+    mut bullets: Query<(&mut ErasedGodotRef, &Transform2D), Added<Bullet>>,
+    mut audio: Query<&mut ErasedGodotRef, (With<ShotAudio>, Without<Bullet>)>,
+) {
     for (mut bullet, bullet_transform) in bullets.iter_mut() {
-        let bullet = bullet.get::<RigidBody2D>();
+        let mut audio = audio.single_mut();
+        audio.get::<AudioStreamPlayer>().play(0.0);
 
+        let bullet = bullet.get::<RigidBody2D>();
         let bullet_velocity = bullet_transform.basis_xform_inv(Vector2::new(0.0, -800.0));
         bullet.set_linear_velocity(bullet_velocity);
     }

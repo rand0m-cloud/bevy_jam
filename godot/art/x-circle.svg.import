@@ -2,15 +2,15 @@
 
 importer="texture"
 type="StreamTexture"
-path="res://.import/Arrow.png-e196b12a47dc92763082ea00607d048f.stex"
+path="res://.import/x-circle.svg-4386400a40cf430a56f02a34a0ddc2d1.stex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/Arrow.png"
-dest_files=[ "res://.import/Arrow.png-e196b12a47dc92763082ea00607d048f.stex" ]
+source_file="res://art/x-circle.svg"
+dest_files=[ "res://.import/x-circle.svg-4386400a40cf430a56f02a34a0ddc2d1.stex" ]
 
 [params]
 

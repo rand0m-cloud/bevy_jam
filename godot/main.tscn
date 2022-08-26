@@ -137,5 +137,6 @@ stream = ExtResource( 7 )
 position = Vector2( 200, 200 )
 
 [node name="AimTarget" parent="." instance=ExtResource( 8 )]
+visible = false
 position = Vector2( 0, 200 )
 scale = Vector2( 1, 1 )

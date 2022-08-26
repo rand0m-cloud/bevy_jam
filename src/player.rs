@@ -191,7 +191,6 @@ fn move_player(
             } else {
                 advance(body, WALKING_SPEED)
             };
-            debug!("Distance is {distance:?}.");
             if distance < 2.0 {
                 debug!("Goal reached. Stop.");
                 *activity = Activity::Ducking;
@@ -220,6 +219,10 @@ fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2) -> f64 {
     let goal_relative_position = transform.xform_inv(goal);
 
     let angle = goal_relative_position.angle_to(Vector2::UP) as f64;
+    if angle.is_nan() {
+        debug!("Can't compute the angle to turn. Probably standing exactly at the goal.");
+        return 0.0
+    }
 
     let turn = -TURNING_SPEED * angle;
 

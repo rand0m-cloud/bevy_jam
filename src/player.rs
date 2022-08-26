@@ -320,7 +320,7 @@ fn player_shoot(
     let (mut player, player_transform, mut activity) = player.single_mut();
     let mut target = target.single_mut();
 
-    if input.is_action_just_released("aim", false) {
+    if input.is_action_just_released("aim", false) && player.ammo_count > 0 {
         debug!("Shoot!");
         let bullet_transform = *player_transform;
         commands

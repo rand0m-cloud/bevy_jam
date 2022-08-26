@@ -26,7 +26,7 @@ impl Plugin for PlayerPlugin {
             .add_system(
                 move_player
                     .as_physics_system()
-                    .run_in_state(GameState::Playing),
+                    .run_not_in_state(GameState::Loading),
             )
             .add_system(aim.as_physics_system().run_in_state(GameState::Playing))
             .add_system(
@@ -152,6 +152,7 @@ fn move_player(
     mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
     mut goal: Query<(&Transform2D, &mut ErasedGodotRef), (With<Goal>, Without<Player>)>,
     target: Query<&Transform2D, With<Target>>,
+    state: Res<CurrentState<GameState>>,
     // HACK: this system accesses the physics server and needs to be run on the
     // main thread. this system param will force this system to be run on the
     // main thread
@@ -169,6 +170,12 @@ fn move_player(
             .unwrap()
             .assume_safe()
     };
+
+    if state.0 == GameState::Sheltered {
+        body.set_linear_velocity(Vector2::ZERO);
+        return;
+    }
+
     let distance = body.transform().origin.distance_to(goal);
 
     match *activity {

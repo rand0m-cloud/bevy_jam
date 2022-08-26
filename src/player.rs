@@ -28,6 +28,11 @@ impl Plugin for PlayerPlugin {
                     .as_physics_system()
                     .run_not_in_state(GameState::Loading),
             )
+            .add_system(
+                apply_fatigue
+                    .as_physics_system()
+                    .run_in_state(GameState::Playing),
+            )
             .add_system(aim.as_physics_system().run_in_state(GameState::Playing))
             .add_system(
                 set_goal
@@ -96,6 +101,9 @@ pub enum Activity {
 }
 
 #[derive(Debug, Component)]
+struct Stamina(f32);
+
+#[derive(Debug, Component)]
 struct ShotAudio;
 
 #[derive(Debug, Component)]
@@ -110,6 +118,7 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands
         .entity(player_ent)
         .insert(Player::default())
+        .insert(Stamina(1.0))
         .insert(Activity::Standing);
 
     let player_interact_ent = entities
@@ -148,8 +157,24 @@ fn label_target(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands.entity(target).insert(Target);
 }
 
+fn apply_fatigue(mut entities: Query<(&mut Stamina, &Activity)>, mut time: SystemDelta) {
+    let delta = time.delta_seconds();
+
+    for (mut stamina, activity) in entities.iter_mut() {
+        let recovery_time = match activity {
+            Activity::Standing => 30.,
+            Activity::Walking => 60.,
+            Activity::Running => -60.,
+        };
+
+        let fatigue = delta * -1.0 / recovery_time;
+        stamina.0 -= fatigue;
+        stamina.0 = stamina.0.clamp(0.0, 1.0);
+    }
+}
+
 fn move_player(
-    mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
+    mut player: Query<(&mut ErasedGodotRef, &mut Activity, &Stamina), With<Player>>,
     mut goal: Query<(&Transform2D, &mut ErasedGodotRef), (With<Goal>, Without<Player>)>,
     target: Query<&Transform2D, With<Target>>,
     state: Res<CurrentState<GameState>>,
@@ -158,7 +183,7 @@ fn move_player(
     // main thread
     _scene_tree: SceneTreeRef,
 ) {
-    let (mut player, mut activity) = player.single_mut();
+    let (mut player, mut activity, stamina) = player.single_mut();
     let (goal_transform, mut goal_reference) = goal.single_mut();
     let goal = goal_transform.origin;
     let target = target.single().origin;
@@ -213,6 +238,12 @@ fn move_player(
 
                 *activity = Activity::Walking;
                 debug!("Now {activity:?}");
+            };
+
+            if stamina.0 < 0.01 {
+                debug!("Out of breath.");
+                *activity = Activity::Walking;
+                debug!("Now {activity:?}.");
             }
         }
     };

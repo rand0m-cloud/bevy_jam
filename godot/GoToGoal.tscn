@@ -1,10 +1,9 @@
 [gd_scene load_steps=2 format=2]
 
-[ext_resource path="res://circle.svg" type="Texture" id=1]
+[ext_resource path="res://art/x-circle.svg" type="Texture" id=1]
 
-[node name="GoToGoal" type="StaticBody2D"]
+[node name="GoToGoal" type="Node2D"]
 scale = Vector2( 0.5, 0.5 )
 
 [node name="Sprite" type="Sprite" parent="."]
-scale = Vector2( 1.02574, 0.964905 )
 texture = ExtResource( 1 )

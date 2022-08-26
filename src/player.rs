@@ -392,7 +392,18 @@ fn place_trap(
     }
 }
 
-fn on_restart(mut player: Query<&mut Player>) {
-    let mut player = player.single_mut();
+fn on_restart(
+    mut player: Query<(&mut Player, &mut Activity)>,
+    mut goal: Query<&mut ErasedGodotRef, (With<Goal>, Without<Target>)>,
+    mut target: Query<&mut ErasedGodotRef, (With<Target>, Without<Goal>)>,
+) {
+    let (mut player, mut activity) = player.single_mut();
+    let mut goal = goal.single_mut();
+    let mut target = target.single_mut();
+
     player.reset();
+    *activity = Activity::Standing;
+
+    goal.get::<Node2D>().set_visible(false);
+    target.get::<Node2D>().set_visible(false);
 }

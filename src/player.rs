@@ -35,11 +35,6 @@ impl Plugin for PlayerPlugin {
                     .run_in_state(GameState::Playing),
             )
             .add_system(
-                toggle_ducking
-                    .as_physics_system()
-                    .run_in_state(GameState::Playing),
-            )
-            .add_system(
                 toggle_running
                     .as_physics_system()
                     .run_in_state(GameState::Playing),
@@ -95,7 +90,6 @@ struct Target;
 
 #[derive(Debug, Component, PartialEq, Eq)]
 pub enum Activity {
-    Ducking,
     Standing,
     Walking,
     Running,
@@ -116,7 +110,7 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands
         .entity(player_ent)
         .insert(Player::default())
-        .insert(Activity::Ducking);
+        .insert(Activity::Standing);
 
     let player_interact_ent = entities
         .iter()
@@ -178,9 +172,6 @@ fn move_player(
     let distance = body.transform().origin.distance_to(goal);
 
     match *activity {
-        Activity::Ducking => {
-            stop(body);
-        }
         Activity::Standing => {
             stop(body);
             turn_toward(body, target);
@@ -197,7 +188,7 @@ fn move_player(
 
                 goal_reference.get::<Node2D>().set_visible(false);
 
-                *activity = Activity::Ducking;
+                *activity = Activity::Standing;
                 debug!("Now {activity:?}");
             }
         }
@@ -311,19 +302,6 @@ fn toggle_running(mut activity: Query<&mut Activity, With<Player>>) {
     }
 }
 
-fn toggle_ducking(mut activity: Query<&mut Activity, With<Player>>) {
-    let input = Input::godot_singleton();
-    let mut activity = activity.single_mut();
-
-    if input.is_action_just_pressed("toggle_ducking", false) {
-        *activity = match *activity {
-            Activity::Ducking => Activity::Standing,
-            _ => Activity::Ducking,
-        };
-        debug!("Now {activity:?}");
-    }
-}
-
 fn player_shoot(
     mut commands: Commands,
     mut target: Query<&mut ErasedGodotRef, With<Target>>,
@@ -345,7 +323,7 @@ fn player_shoot(
         player.ammo_count -= 1;
 
         target.get::<Node2D>().set_visible(false);
-        *activity = Activity::Ducking;
+        *activity = Activity::Standing;
         debug!("Now {activity:?}");
     }
 }

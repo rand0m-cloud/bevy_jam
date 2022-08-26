@@ -31,6 +31,14 @@ __meta__ = {
 "_editor_description_": ""
 }
 
+[node name="AirdropDistance" type="Label" parent="CanvasLayer/AirdropIndicator"]
+margin_bottom = 5.0
+rect_min_size = Vector2( 60, 20 )
+rect_scale = Vector2( 2, 2 )
+text = "500m"
+align = 1
+valign = 1
+
 [node name="GameOverScreen" type="Control" parent="CanvasLayer"]
 anchor_right = 1.0
 anchor_bottom = 1.0

@@ -36,14 +36,15 @@ fn process_proximity_bombs(
             if bomb_timer.just_finished() {
                 info!("proximity bomb went off");
                 for ent in collisions.colliding() {
-                    let mut obj_hp = entities.get_mut(*ent).unwrap();
-                    obj_hp.0 = 0.0;
+                    if let Ok(mut obj_hp) = entities.get_mut(*ent) {
+                        obj_hp.0 = 0.0;
+                    }
                 }
                 reference.get::<Node>().queue_free();
             }
         } else if !collisions.recent_collisions().is_empty() {
             info!("proximity bomb is armed");
-            bomb.0 = Some(Timer::from_seconds(3.0, false));
+            bomb.0 = Some(Timer::from_seconds(2.0, false));
         }
     }
 }

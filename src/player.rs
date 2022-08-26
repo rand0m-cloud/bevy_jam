@@ -156,7 +156,7 @@ fn label_target(mut commands: Commands, entities: Query<(&Name, Entity)>) {
 
 fn move_player(
     mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
-    goal: Query<&Transform2D, (With<Goal>, Without<Target>)>,
+    mut goal: Query<(&Transform2D, &mut ErasedGodotRef), (With<Goal>, Without<Player>)>,
     target: Query<&Transform2D, With<Target>>,
     // HACK: this system accesses the physics server and needs to be run on the
     // main thread. this system param will force this system to be run on the
@@ -164,7 +164,8 @@ fn move_player(
     _scene_tree: SceneTreeRef,
 ) {
     let (mut player, mut activity) = player.single_mut();
-    let goal = goal.single().origin;
+    let (goal_transform, mut goal_reference) = goal.single_mut();
+    let goal = goal_transform.origin;
     let target = target.single().origin;
 
     let physics_server = unsafe { Physics2DServer::godot_singleton() };
@@ -193,6 +194,9 @@ fn move_player(
             };
             if distance < 2.0 {
                 debug!("Goal reached. Stop.");
+
+                goal_reference.get::<Node2D>().set_visible(false);
+
                 *activity = Activity::Ducking;
                 debug!("Now {activity:?}");
             }
@@ -206,6 +210,9 @@ fn move_player(
             };
             if distance < 30.0 {
                 debug!("Approaching the goal. Slowing down.");
+
+                goal_reference.get::<Node2D>().set_visible(false);
+
                 *activity = Activity::Walking;
                 debug!("Now {activity:?}");
             }
@@ -243,37 +250,46 @@ fn stop(body: TRef<Physics2DDirectBodyState>) {
 fn aim(
     mut target: Query<(&mut ErasedGodotRef, &mut Transform2D), (With<Target>, Without<Player>)>,
     mut player: Query<(&mut ErasedGodotRef, &mut Activity), (With<Player>, Without<Target>)>,
+    mut goal: Query<&mut ErasedGodotRef, (Without<Player>, Without<Target>, With<Goal>)>,
 ) {
     let input = Input::godot_singleton();
     let (mut player, mut activity) = player.single_mut();
     let (mut target, mut transform) = target.single_mut();
+    let mut goal = goal.single_mut();
     let player = player.get::<Node2D>();
 
     if input.is_action_pressed("aim", false) {
         // TODO: Getting mouse position from player seems odd. Isn't there a more obvious way?
         let mouse_position = player.get_global_mouse_position();
         debug!("New target is {mouse_position:?}");
+
         transform.origin = mouse_position;
         target.get::<Node2D>().set_visible(true);
+
+        goal.get::<Node2D>().set_visible(false);
+
         *activity = Activity::Standing;
         debug!("Now {activity:?}");
     }
 }
 
 fn set_goal(
-    mut goal: Query<&mut Transform2D, With<Goal>>,
+    mut goal: Query<(&mut Transform2D, &mut ErasedGodotRef), (With<Goal>, Without<Player>)>,
     mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
 ) {
     let input = Input::godot_singleton();
     let (mut player, mut activity) = player.single_mut();
-    let mut goal = goal.single_mut();
+    let (mut goal_transform, mut goal_reference) = goal.single_mut();
     let player = player.get::<Node2D>();
 
     if input.is_action_just_pressed("set_goal", false) {
         // TODO: Getting mouse position from player seems odd. Isn't there a more obvious way?
         let mouse_position = player.get_global_mouse_position();
         debug!("New goal is {mouse_position:?}");
-        goal.origin = mouse_position;
+
+        goal_transform.origin = mouse_position;
+        goal_reference.get::<Node2D>().set_visible(true);
+
         *activity = match *activity {
             Activity::Running => Activity::Running,
             _ => Activity::Walking,

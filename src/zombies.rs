@@ -4,6 +4,7 @@ use crate::{
     player::{Player, PlayerInteractVolume},
     GameState, Hp, Score,
 };
+use bevy_asset_loader::prelude::*;
 use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
 use iyes_loopless::prelude::*;
 use rand::prelude::*;
@@ -11,16 +12,27 @@ use rand::prelude::*;
 pub struct ZombiesPlugin;
 impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(SpawnTimer(Timer::from_seconds(10.0, true)))
-            .add_startup_system(populate)
+        app.insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
+            .add_exit_system(GameState::Loading, populate)
             .add_system(zombie_bites.run_in_state(GameState::Playing))
-            .add_system(spawn_zombies.as_physics_system())
+            .add_system(
+                spawn_zombies
+                    .as_physics_system()
+                    .run_not_in_state(GameState::Loading),
+            )
             .add_system(zombies_move.as_physics_system())
             .add_system(despawn_faraway_zombies.as_physics_system())
             .add_system(kill_zombies.as_physics_system())
             .add_system(zombie_targeting.as_physics_system())
-            .add_exit_system(GameState::GameOver, on_restart);
+            .add_exit_system(GameState::GameOver, on_restart)
+            .add_exit_system(GameState::GameOver, populate);
     }
+}
+
+#[derive(AssetCollection)]
+pub struct ZombieAssets {
+    #[asset(path = "SpawnCurve.tres")]
+    population_curve: Handle<GodotResource>,
 }
 
 #[derive(Debug, Component)]
@@ -65,16 +77,27 @@ fn spawn_zombies(
     zombies: Query<(), With<Zombie>>,
     mut timer: ResMut<SpawnTimer>,
     time: Res<Time>,
+    zombie_assets: Res<ZombieAssets>,
+    mut resources: ResMut<Assets<GodotResource>>,
 ) {
     timer.0.tick(time.delta());
 
     if timer.0.just_finished() {
-        // Limit spawning rate if population is large
+        let curve = resources.get_mut(&zombie_assets.population_curve).unwrap();
+
         let population_target = 200.0;
-        let actual_population = zombies.iter().count() as f32;
-        let probability = population_target / 100.0 / actual_population.sqrt();
-        debug!("Current population is {actual_population}");
-        if random::<f32>() > probability {
+        let population = zombies.iter().count() as f64;
+        let probability = if population < population_target {
+            curve
+                .get::<Curve>()
+                .unwrap()
+                .interpolate_baked(population / 200.0)
+        } else {
+            0.0
+        };
+
+        debug!("Current population is {population}, testing with a {probability}");
+        if random::<f64>() > probability {
             return;
         };
 
@@ -100,19 +123,24 @@ fn spawn_zombie(commands: &mut Commands, origin: Vector2) {
 }
 
 fn despawn_faraway_zombies(
+    mut commands: Commands,
     player: Query<&Transform2D, With<Player>>,
     mut zombies: Query<(&Transform2D, &mut ErasedGodotRef), With<Zombie>>,
 ) {
     let player = player.single();
     for (transform, mut zombie) in zombies.iter_mut() {
         let distance = transform.origin.distance_to(player.origin);
-        if distance > 5000.0 {
+        if distance > 3500.0 {
             debug!(
                 "{:?} is too far from {:?} ({:?}). Despawning.",
                 transform.origin, player.origin, distance
             );
             let zombie = zombie.get::<Node>();
             zombie.queue_free();
+
+            // Replace zombie near the player
+            let origin = player.origin + random_displacement(1250, 3000);
+            spawn_zombie(&mut commands, origin);
         }
     }
 }
@@ -165,7 +193,7 @@ fn zombie_targeting(
 ) {
     for (zombie, mut target) in zombies.iter_mut() {
         let player = player.single();
-        if zombie.origin.distance_to(player.origin) < 500.0 {
+        if zombie.origin.distance_to(player.origin) < 750.0 {
             *target = Target(player.origin);
         } else if zombie.origin.distance_to(target.0) < 200.0 {
             *target = Target::random(zombie.origin);
@@ -204,14 +232,8 @@ fn zombie_bites(
     }
 }
 
-fn on_restart(
-    commands: Commands,
-    mut zombies: Query<&mut ErasedGodotRef, With<Zombie>>,
-    player: Query<&Transform2D, With<Player>>,
-) {
+fn on_restart(mut zombies: Query<&mut ErasedGodotRef, With<Zombie>>) {
     for mut zombie in zombies.iter_mut() {
         zombie.get::<Node>().queue_free();
     }
-
-    populate(commands, player);
 }

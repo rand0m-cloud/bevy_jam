@@ -1,5 +1,6 @@
 #![allow(clippy::type_complexity)]
 
+use bevy_asset_loader::prelude::*;
 use bevy_godot::prelude::*;
 use iyes_loopless::prelude::*;
 
@@ -13,7 +14,12 @@ mod zombies;
 fn init(_handle: &InitHandle) {}
 
 fn build_app(app: &mut App) {
-    app.add_loopless_state(GameState::Playing)
+    app.add_loopless_state(GameState::Loading)
+        .add_loading_state(
+            LoadingState::new(GameState::Loading)
+                .continue_to_state(GameState::Playing)
+                .with_collection::<zombies::ZombieAssets>(),
+        )
         .insert_resource(Score(0))
         .insert_resource(SelectedItemSlot(Some(0)))
         .add_plugin(player::PlayerPlugin)
@@ -34,6 +40,7 @@ pub struct SelectedItemSlot(Option<u16>);
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
+    Loading,
     Playing,
     Sheltered,
     GameOver,

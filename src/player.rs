@@ -221,7 +221,7 @@ fn turn_toward(body: TRef<Physics2DDirectBodyState>, goal: Vector2) -> f64 {
     let angle = goal_relative_position.angle_to(Vector2::UP) as f64;
     if angle.is_nan() {
         debug!("Can't compute the angle to turn. Probably standing exactly at the goal.");
-        return 0.0
+        return 0.0;
     }
 
     let turn = -TURNING_SPEED * angle;
@@ -275,10 +275,8 @@ fn set_goal(
         debug!("New goal is {mouse_position:?}");
         goal.origin = mouse_position;
         *activity = match *activity {
-            Activity::Ducking => Activity::Walking,
-            Activity::Standing => Activity::Walking,
-            Activity::Walking => Activity::Walking,
             Activity::Running => Activity::Running,
+            _ => Activity::Walking,
         };
         debug!("Now {activity:?}");
     }
@@ -290,10 +288,8 @@ fn toggle_running(mut activity: Query<&mut Activity, With<Player>>) {
 
     if input.is_action_just_pressed("toggle_running", false) {
         *activity = match *activity {
-            Activity::Ducking => Activity::Running,
-            Activity::Standing => Activity::Running,
-            Activity::Walking => Activity::Running,
             Activity::Running => Activity::Walking,
+            _ => Activity::Running,
         };
         debug!("Now {activity:?}");
     }
@@ -306,9 +302,7 @@ fn toggle_ducking(mut activity: Query<&mut Activity, With<Player>>) {
     if input.is_action_just_pressed("toggle_ducking", false) {
         *activity = match *activity {
             Activity::Ducking => Activity::Standing,
-            Activity::Standing => Activity::Ducking,
-            Activity::Walking => Activity::Ducking,
-            Activity::Running => Activity::Ducking,
+            _ => Activity::Ducking,
         };
         debug!("Now {activity:?}");
     }

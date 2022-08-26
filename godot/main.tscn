@@ -134,6 +134,7 @@ position = Vector2( 91, 10 )
 stream = ExtResource( 7 )
 
 [node name="GoToGoal" parent="." instance=ExtResource( 4 )]
+visible = false
 position = Vector2( 200, 200 )
 
 [node name="AimTarget" parent="." instance=ExtResource( 8 )]

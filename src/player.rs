@@ -21,7 +21,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(label_player)
             .add_startup_system(label_shot_audio)
-            .add_startup_system(label_out_of_breath_audio)
+            .add_startup_system(label_breath_audio)
             .add_startup_system(label_goal)
             .add_startup_system(label_target)
             .add_system(
@@ -107,8 +107,13 @@ struct Stamina(f32);
 #[derive(Debug, Component)]
 struct ShotAudio;
 
-#[derive(Debug, Component)]
-struct OutOfBreathAudio;
+#[derive(Debug, Component, PartialEq, Eq)]
+enum BreathAudio {
+    OutOfBreath,
+    Fatigued,
+    Intensive,
+    None,
+}
 
 #[derive(Debug, Component)]
 pub struct Bullet;
@@ -143,13 +148,18 @@ fn label_shot_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands.entity(goal).insert(ShotAudio);
 }
 
-fn label_out_of_breath_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
-    let goal = entities
-        .iter()
-        .find_map(|(name, ent)| (name.as_str() == "OutOfBreathAudio").then_some(ent))
-        .unwrap();
-
-    commands.entity(goal).insert(OutOfBreathAudio);
+fn label_breath_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
+    for (name, entity) in entities.iter() {
+        let component = match name.as_str() {
+            "OutOfBreathAudio" => BreathAudio::OutOfBreath,
+            "FatiguedBreathAudio" => BreathAudio::Fatigued,
+            "IntensiveBreathAudio" => BreathAudio::Intensive,
+            // NOTE: None variant is intentionally never used. It's for silencing the breath.
+            _ => continue,
+        };
+        debug!("Labeled {component:?}");
+        commands.entity(entity).insert(component);
+    }
 }
 
 fn label_goal(mut commands: Commands, entities: Query<(&Name, Entity)>) {
@@ -189,10 +199,7 @@ fn apply_fatigue(mut entities: Query<(&mut Stamina, &Activity)>, mut time: Syste
 fn move_player(
     mut player: Query<(&mut ErasedGodotRef, &mut Activity, &Stamina), With<Player>>,
     mut goal: Query<(&Transform2D, &mut ErasedGodotRef), (With<Goal>, Without<Player>)>,
-    mut out_of_breath_audio: Query<
-        &mut ErasedGodotRef,
-        (With<OutOfBreathAudio>, Without<Player>, Without<Goal>),
-    >,
+    mut breath_audio: Query<(&mut ErasedGodotRef, &BreathAudio), (Without<Player>, Without<Goal>)>,
     target: Query<&Transform2D, With<Target>>,
     state: Res<CurrentState<GameState>>,
     // HACK: this system accesses the physics server and needs to be run on the
@@ -204,6 +211,21 @@ fn move_player(
     let (goal_transform, mut goal_reference) = goal.single_mut();
     let goal = goal_transform.origin;
     let target = target.single().origin;
+
+    let mut play_breath_audio = |current: BreathAudio| {
+        for (mut audio, label) in breath_audio.iter_mut() {
+            let audio = audio.get::<AudioStreamPlayer>();
+            if label == &current {
+                if !audio.is_playing() {
+                    debug!("Playing {label:?}");
+                    audio.play(0.0);
+                }
+            } else if audio.is_playing() {
+                debug!("Stopping {label:?}");
+                audio.stop();
+            }
+        }
+    };
 
     let physics_server = unsafe { Physics2DServer::godot_singleton() };
     let body = unsafe {
@@ -222,10 +244,15 @@ fn move_player(
 
     match *activity {
         Activity::Standing => {
+            play_breath_audio(BreathAudio::None);
             stop(body);
             turn_toward(body, target);
         }
         Activity::Walking => {
+            if stamina.0 > 0.5 {
+                play_breath_audio(BreathAudio::None);
+            };
+
             let deviation = turn_toward(body, goal);
             if deviation.abs() > 1.0 {
                 advance(body, 0.0)
@@ -242,6 +269,18 @@ fn move_player(
             }
         }
         Activity::Running => {
+            if stamina.0 < 0.01 {
+                play_breath_audio(BreathAudio::OutOfBreath);
+
+                debug!("Out of breath.");
+                *activity = Activity::Walking;
+                debug!("Now {activity:?}.");
+            } else if stamina.0 < 0.5 {
+                play_breath_audio(BreathAudio::Fatigued);
+            } else if stamina.0 < 0.9 {
+                play_breath_audio(BreathAudio::Intensive);
+            };
+
             let deviation = turn_toward(body, goal);
             if deviation.abs() > 1.0 {
                 advance(body, WALKING_SPEED)
@@ -256,18 +295,6 @@ fn move_player(
                 *activity = Activity::Walking;
                 debug!("Now {activity:?}");
             };
-
-            if stamina.0 < 0.01 {
-                let mut audio = out_of_breath_audio.single_mut();
-                let audio = audio.get::<AudioStreamPlayer>();
-                if !audio.is_playing() {
-                    audio.play(0.0);
-                };
-
-                debug!("Out of breath.");
-                *activity = Activity::Walking;
-                debug!("Now {activity:?}.");
-            }
         }
     };
 }

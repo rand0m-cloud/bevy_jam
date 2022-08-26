@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=2]
+[gd_scene load_steps=12 format=2]
 
 [ext_resource path="res://Player.tscn" type="PackedScene" id=1]
 [ext_resource path="res://art/crate.png" type="Texture" id=2]
@@ -9,6 +9,8 @@
 [ext_resource path="res://art/crossbow.ogg" type="AudioStream" id=7]
 [ext_resource path="res://AimTarget.tscn" type="PackedScene" id=8]
 [ext_resource path="res://art/out-of-breath.wav" type="AudioStream" id=9]
+[ext_resource path="res://art/fatigued-breath.wav" type="AudioStream" id=10]
+[ext_resource path="res://art/intensive-breath.wav" type="AudioStream" id=11]
 
 [node name="Main" type="Node2D"]
 
@@ -165,6 +167,12 @@ stream = ExtResource( 7 )
 
 [node name="OutOfBreathAudio" type="AudioStreamPlayer" parent="."]
 stream = ExtResource( 9 )
+
+[node name="FatiguedBreathAudio" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 10 )
+
+[node name="IntensiveBreathAudio" type="AudioStreamPlayer" parent="."]
+stream = ExtResource( 11 )
 
 [node name="GoToGoal" parent="." instance=ExtResource( 4 )]
 visible = false

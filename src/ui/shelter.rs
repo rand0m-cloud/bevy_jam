@@ -1,11 +1,15 @@
-use crate::{crafting::Item, player::Player};
+use crate::{
+    crafting::{Item, Part},
+    player::Player,
+};
 use bevy::log::*;
 use bevy_godot::prelude::{
-    bevy_prelude::{EventReader, ParamSet, With, Without},
+    bevy_prelude::{Changed, EventReader, ParamSet, With, Without},
     godot_prelude::Color,
     *,
 };
 use iyes_loopless::prelude::*;
+use std::{collections::HashMap, fmt::Write};
 
 use crate::GameState;
 
@@ -16,6 +20,7 @@ impl Plugin for ShelterUiPlugin {
         app.add_startup_system(setup_shelter_ui)
             .add_system(debug_toggle_shelter_mode.as_visual_system())
             .add_system(listen_for_crafting_ui_presses.run_in_state(GameState::Sheltered))
+            .add_system(update_recipe_text)
             .add_enter_system(GameState::Sheltered, show_shelter_ui)
             .add_enter_system(GameState::Playing, hide_shelter_ui);
     }
@@ -35,6 +40,9 @@ struct CraftingTarget(Option<Item>);
 
 #[derive(Component)]
 struct CraftingTargetText;
+
+#[derive(Component)]
+struct CraftingRecipeText;
 
 fn setup_shelter_ui(
     mut commands: Commands,
@@ -111,6 +119,17 @@ fn setup_shelter_ui(
         .entity(craft_target_text)
         .insert(CraftingUi)
         .insert(CraftingTargetText);
+
+    // setup crafting recipe text
+    let craft_recipe_text = entities
+        .iter()
+        .find_map(|(name, ent, _)| (name.as_str() == "ItemRecipeText").then_some(ent))
+        .unwrap();
+
+    commands
+        .entity(craft_recipe_text)
+        .insert(CraftingUi)
+        .insert(CraftingRecipeText);
 }
 
 fn refresh_crafting_ui(
@@ -216,5 +235,53 @@ fn debug_toggle_shelter_mode(mut commands: Commands, state: Res<CurrentState<Gam
 
     if input.is_action_just_pressed("ui_cancel", false) && state.0 == GameState::Sheltered {
         commands.insert_resource(NextState(GameState::Playing));
+    }
+}
+
+fn update_recipe_text(
+    recipe: Query<&CraftingTarget>,
+    player: Query<&Player>,
+    player_changed: Query<(), Changed<Player>>,
+    target_changed: Query<(), Changed<CraftingTarget>>,
+    mut text: Query<&mut ErasedGodotRef, With<CraftingRecipeText>>,
+) {
+    if let CraftingTarget(Some(target)) = recipe.single() {
+        if player_changed.get_single().is_err() && target_changed.get_single().is_err() {
+            return;
+        }
+
+        let player = player.single();
+        let mut text = text.single_mut();
+
+        let mut ingredients = target
+            .ingredients()
+            .into_iter()
+            .fold(HashMap::<Part, u32>::new(), |mut acc, part| {
+                *acc.entry(part).or_default() += 1;
+                acc
+            })
+            .into_iter()
+            .collect::<Vec<_>>();
+        ingredients.sort_by(|(part_a, _), (part_b, _)| part_a.cmp(part_b));
+
+        let mut recipe_bbcode = String::new();
+        for (part, count) in ingredients {
+            let player_count = player
+                .inventory
+                .get_parts()
+                .get(&part)
+                .copied()
+                .unwrap_or_default();
+
+            let line = format!("{:?}: ({}/{})", part, player_count, count);
+
+            if player_count >= count {
+                writeln!(&mut recipe_bbcode, "[color=green]{}[/color]", line).unwrap();
+            } else {
+                writeln!(&mut recipe_bbcode, "[color=red]{}[/color]", line).unwrap();
+            }
+        }
+
+        text.get::<RichTextLabel>().set_bbcode(recipe_bbcode);
     }
 }

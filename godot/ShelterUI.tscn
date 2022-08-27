@@ -27,28 +27,61 @@ margin_top = 32.0
 margin_right = -4.0
 margin_bottom = -4.0
 
+[node name="MarginContainer" type="MarginContainer" parent="TabContainer/Crafting"]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+margin_top = -154.0
+margin_bottom = -78.0
+custom_constants/margin_right = 10
+custom_constants/margin_top = 10
+custom_constants/margin_left = 10
+custom_constants/margin_bottom = 10
+
+[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/Crafting/MarginContainer"]
+margin_left = 10.0
+margin_top = 10.0
+margin_right = 482.0
+margin_bottom = 74.0
+rect_min_size = Vector2( 0, 63 )
+scroll_vertical_enabled = false
+
+[node name="Craftables" type="HBoxContainer" parent="TabContainer/Crafting/MarginContainer/ScrollContainer"]
+margin_right = 64.0
+margin_bottom = 64.0
+
+[node name="ProximityBomb" type="TextureButton" parent="TabContainer/Crafting/MarginContainer/ScrollContainer/Craftables"]
+margin_right = 64.0
+margin_bottom = 64.0
+rect_min_size = Vector2( 64, 64 )
+texture_normal = ExtResource( 4 )
+expand = true
+
 [node name="Control" type="Control" parent="TabContainer/Crafting"]
 anchor_right = 1.0
-rect_min_size = Vector2( 0, 200 )
+rect_min_size = Vector2( 0, 250 )
 
 [node name="SelectedItem" type="TextureRect" parent="TabContainer/Crafting/Control"]
 anchor_left = 0.5
 anchor_right = 0.5
-margin_left = -31.0
-margin_top = 17.0
-margin_right = 33.0
-margin_bottom = 81.0
+margin_left = -163.0
+margin_top = 30.0
+margin_right = -67.0
+margin_bottom = 126.0
+rect_min_size = Vector2( 96, 96 )
 texture = ExtResource( 1 )
+expand = true
+stretch_mode = 5
 
-[node name="SelectedItemText" type="Label" parent="TabContainer/Crafting/Control/SelectedItem"]
+[node name="SelectedItemText" type="Label" parent="TabContainer/Crafting/Control"]
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-margin_left = -100.0
-margin_top = 17.0
-margin_right = 3.0
-margin_bottom = 31.0
+margin_left = -99.0
+margin_top = -58.0
+margin_right = 4.0
+margin_bottom = -44.0
 rect_min_size = Vector2( 100, 0 )
 rect_scale = Vector2( 2, 2 )
 align = 1
@@ -59,28 +92,21 @@ anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-margin_left = -47.0
-margin_top = -53.0
-margin_right = 1.0
-margin_bottom = -33.0
+grow_horizontal = 0
+grow_vertical = 0
 rect_min_size = Vector2( 48, 0 )
 rect_scale = Vector2( 2, 2 )
 text = "Craft"
 
-[node name="ScrollContainer" type="ScrollContainer" parent="TabContainer/Crafting"]
-anchor_top = 0.5
+[node name="ItemRecipeText" type="RichTextLabel" parent="TabContainer/Crafting/Control"]
+anchor_left = 1.0
 anchor_right = 1.0
-anchor_bottom = 0.5
-rect_min_size = Vector2( 0, 128 )
-scroll_vertical_enabled = false
-
-[node name="Craftables" type="HBoxContainer" parent="TabContainer/Crafting/ScrollContainer"]
-margin_right = 128.0
-margin_bottom = 128.0
-
-[node name="ProximityBomb" type="TextureButton" parent="TabContainer/Crafting/ScrollContainer/Craftables"]
-margin_right = 128.0
-margin_bottom = 128.0
-rect_min_size = Vector2( 128, 128 )
-texture_normal = ExtResource( 4 )
-expand = true
+anchor_bottom = 1.0
+margin_left = -263.0
+margin_top = 23.0
+margin_right = -138.0
+margin_bottom = -152.0
+rect_min_size = Vector2( 125, 75 )
+rect_scale = Vector2( 2, 2 )
+bbcode_enabled = true
+scroll_active = false

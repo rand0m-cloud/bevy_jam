@@ -3,7 +3,7 @@ use bevy_godot::prelude::*;
 use rand::prelude::SliceRandom;
 use std::collections::HashMap;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component, PartialOrd, Ord)]
 pub enum Part {
     Battery,
     Electronics,
@@ -141,5 +141,9 @@ impl Inventory {
         } else {
             warn!("tried to use item: {:?} but did not have any", item);
         }
+    }
+
+    pub fn get_parts(&self) -> &HashMap<Part, u32> {
+        &self.parts
     }
 }

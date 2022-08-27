@@ -173,15 +173,19 @@ position = Vector2( 91, 10 )
 
 [node name="ShotAudio" type="AudioStreamPlayer" parent="."]
 stream = ExtResource( 7 )
+bus = "Gunshot"
 
 [node name="OutOfBreathAudio" type="AudioStreamPlayer" parent="."]
 stream = ExtResource( 9 )
+bus = "BreathingAudio"
 
 [node name="FatiguedBreathAudio" type="AudioStreamPlayer" parent="."]
 stream = ExtResource( 10 )
+bus = "BreathingAudio"
 
 [node name="IntensiveBreathAudio" type="AudioStreamPlayer" parent="."]
 stream = ExtResource( 11 )
+bus = "BreathingAudio"
 
 [node name="GoToGoal" parent="." instance=ExtResource( 4 )]
 visible = false

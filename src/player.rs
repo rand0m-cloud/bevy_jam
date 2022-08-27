@@ -279,9 +279,9 @@ fn move_player(
                 debug!("Out of breath.");
                 *activity = Activity::Walking;
                 debug!("Now {activity:?}.");
-            } else if stamina.0 < 0.5 {
+            } else if stamina.0 < 0.3 {
                 play_breath_audio(BreathAudio::Fatigued);
-            } else if stamina.0 < 0.9 {
+            } else if stamina.0 < 0.75 {
                 play_breath_audio(BreathAudio::Intensive);
             };
 

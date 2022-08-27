@@ -40,6 +40,9 @@ pub struct AirDrop(Vec<Part>);
 pub struct AirDropIndicator;
 
 #[derive(Component)]
+pub struct AirDropIndicatorLabel;
+
+#[derive(Component)]
 pub struct AirDropProgressBar;
 
 #[derive(Component)]
@@ -56,6 +59,13 @@ fn label_air_drop_indicator(mut commands: Commands, entities: Query<(&Name, Enti
         .unwrap();
 
     commands.entity(ent).insert(AirDropIndicator);
+
+    let ent = entities
+        .iter()
+        .find_map(|(name, ent)| (name.as_str() == "AirdropDistance").then_some(ent))
+        .unwrap();
+
+    commands.entity(ent).insert(AirDropIndicatorLabel);
 }
 
 fn label_air_drop_progressbar(mut commands: Commands, entities: Query<(&Name, Entity)>) {
@@ -170,38 +180,85 @@ fn collect_airdrops(
 }
 
 fn airdrop_indicator(
-    mut airdrop_indicator: Query<(&mut Transform2D, &mut ErasedGodotRef), With<AirDropIndicator>>,
-    mut airdrops: Query<(&AirDrop, &mut ErasedGodotRef), Without<AirDropIndicator>>,
+    mut airdrop_indicator: Query<
+        (&mut Transform2D, &mut ErasedGodotRef),
+        (
+            With<AirDropIndicator>,
+            Without<AirDropIndicatorLabel>,
+            Without<AirDrop>,
+            Without<Player>,
+        ),
+    >,
+    mut airdrop_indicator_label: Query<
+        &mut ErasedGodotRef,
+        (
+            With<AirDropIndicatorLabel>,
+            Without<AirDrop>,
+            Without<AirDropIndicator>,
+        ),
+    >,
+    mut airdrops: Query<
+        (&Transform2D, &mut ErasedGodotRef),
+        (
+            With<AirDrop>,
+            Without<AirDropIndicator>,
+            Without<AirDropIndicatorLabel>,
+        ),
+    >,
+    player: Query<&Transform2D, With<Player>>,
 ) {
     let (mut indicator_transform, mut indicator) = airdrop_indicator.single_mut();
     let indicator = indicator.get::<Node2D>();
 
-    if let Ok((_air_drop, mut reference)) = airdrops.get_single_mut() {
-        let reference = reference.get::<Node2D>();
+    let player = player.single();
 
-        let mut airdrop_screen_origin = reference.get_global_transform_with_canvas().origin;
+    if let Ok((air_drop_transform, mut air_drop)) = airdrops.get_single_mut() {
+        let mut airdrop_screen_origin = {
+            let air_drop = air_drop.get::<Node2D>();
+            air_drop.get_global_transform_with_canvas().origin
+        };
+
+        let mut indicator_label = airdrop_indicator_label.single_mut();
+        let indicator_label = indicator_label.get::<Label>();
 
         let screen_size = Vector2::new(1280.0, 720.0);
-        if (airdrop_screen_origin.x <= 0.0 || airdrop_screen_origin.x >= screen_size.x)
+
+        // calculate the indicator's origin and keep the offset used
+        let indicator_origin_and_offset = if (airdrop_screen_origin.x <= 0.0
+            || airdrop_screen_origin.x >= screen_size.x)
             || (airdrop_screen_origin.y <= 0.0 || airdrop_screen_origin.y >= screen_size.y)
         {
-            indicator.set_visible(true);
-
             let offset = 40.0;
+            let mut offset_vector2 = Vector2::ZERO;
 
             if airdrop_screen_origin.x <= 0.0 {
                 airdrop_screen_origin.x = offset;
+                offset_vector2.x = offset;
             } else if airdrop_screen_origin.x >= screen_size.x {
                 airdrop_screen_origin.x = screen_size.x - offset;
+                offset_vector2.x = -offset;
             }
 
             if airdrop_screen_origin.y <= 0.0 {
                 airdrop_screen_origin.y = offset;
+                offset_vector2.y = offset;
             } else if airdrop_screen_origin.y >= screen_size.y {
                 airdrop_screen_origin.y = screen_size.y - offset;
+                offset_vector2.y = -offset;
             }
 
-            indicator_transform.0 = GodotTransform2D::IDENTITY.translated(airdrop_screen_origin);
+            Some((airdrop_screen_origin, offset_vector2))
+        } else {
+            None
+        };
+
+        if let Some((origin, offset)) = indicator_origin_and_offset {
+            indicator_transform.0 = GodotTransform2D::IDENTITY.translated(origin);
+            indicator.set_visible(true);
+
+            let distance = air_drop_transform.origin.distance_to(player.origin);
+            indicator_label.set_position(offset, false);
+            indicator_label.set_text(format!("{:.0}m", distance / 8.0));
         } else {
             indicator.set_visible(false);
         }

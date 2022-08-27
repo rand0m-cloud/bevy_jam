@@ -180,17 +180,46 @@ fn collect_airdrops(
 }
 
 fn airdrop_indicator(
-    airdrop_indicator: Query<Entity, With<AirDropIndicator>>,
-    airdrop_indicator_label: Query<Entity, With<AirDropIndicatorLabel>>,
-    airdrops: Query<Entity, With<AirDrop>>,
-    mut entities: Query<(Option<&mut Transform2D>, &mut ErasedGodotRef)>,
+    mut airdrop_indicator: Query<
+        (&mut Transform2D, &mut ErasedGodotRef),
+        (
+            With<AirDropIndicator>,
+            Without<AirDropIndicatorLabel>,
+            Without<AirDrop>,
+            Without<Player>,
+        ),
+    >,
+    mut airdrop_indicator_label: Query<
+        &mut ErasedGodotRef,
+        (
+            With<AirDropIndicatorLabel>,
+            Without<AirDrop>,
+            Without<AirDropIndicator>,
+        ),
+    >,
+    mut airdrops: Query<
+        (&Transform2D, &mut ErasedGodotRef),
+        (
+            With<AirDrop>,
+            Without<AirDropIndicator>,
+            Without<AirDropIndicatorLabel>,
+        ),
+    >,
+    player: Query<&Transform2D, With<Player>>,
 ) {
-    if let Ok(air_drop_ent) = airdrops.get_single() {
+    let (mut indicator_transform, mut indicator) = airdrop_indicator.single_mut();
+    let indicator = indicator.get::<Node2D>();
+
+    let player = player.single();
+
+    if let Ok((air_drop_transform, mut air_drop)) = airdrops.get_single_mut() {
         let mut airdrop_screen_origin = {
-            let mut reference = entities.get_mut(air_drop_ent).unwrap();
-            let reference = reference.1.get::<Node2D>();
-            reference.get_global_transform_with_canvas().origin
+            let air_drop = air_drop.get::<Node2D>();
+            air_drop.get_global_transform_with_canvas().origin
         };
+
+        let mut indicator_label = airdrop_indicator_label.single_mut();
+        let indicator_label = indicator_label.get::<Label>();
 
         let screen_size = Vector2::new(1280.0, 720.0);
 
@@ -223,26 +252,19 @@ fn airdrop_indicator(
             None
         };
 
-        let (mut indicator_transform, mut indicator) =
-            entities.get_mut(airdrop_indicator.single()).unwrap();
-        let indicator_transform = indicator_transform.as_mut().unwrap();
-        let indicator = indicator.get::<Node2D>();
-
         if let Some((origin, offset)) = indicator_origin_and_offset {
             indicator_transform.0 = GodotTransform2D::IDENTITY.translated(origin);
             indicator.set_visible(true);
 
-            let (_, mut indicator_label) =
-                entities.get_mut(airdrop_indicator_label.single()).unwrap();
-            let indicator_label = indicator_label.get::<Label>();
+            let distance = air_drop_transform.origin.distance_to(player.origin);
             indicator_label.set_position(offset, false);
+            indicator_label.set_text(format!("{:.0}m", distance / 8.0));
         } else {
             indicator.set_visible(false);
             return;
         }
     } else {
-        let (_, mut indicator) = entities.get_mut(airdrop_indicator.single()).unwrap();
-        indicator.get::<Node2D>().set_visible(false);
+        indicator.set_visible(false);
     }
 }
 

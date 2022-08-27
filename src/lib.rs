@@ -3,6 +3,7 @@
 use bevy_asset_loader::prelude::*;
 use bevy_godot::prelude::*;
 use iyes_loopless::prelude::*;
+use std::time::Instant;
 
 mod airdrops;
 mod crafting;
@@ -22,6 +23,8 @@ fn build_app(app: &mut App) {
         )
         .insert_resource(Score(0))
         .insert_resource(SelectedItemSlot(Some(0)))
+        .add_exit_system(GameState::Loading, set_round_start)
+        .add_exit_system(GameState::GameOver, set_round_start)
         .add_plugin(player::PlayerPlugin)
         .add_plugin(zombies::ZombiesPlugin)
         .add_plugin(airdrops::AirDropsPlugin)
@@ -37,6 +40,13 @@ pub struct Hp(f32);
 pub struct Score(pub u64);
 
 pub struct SelectedItemSlot(Option<u16>);
+
+#[derive(Debug)]
+pub struct RoundStart(pub Instant);
+
+fn set_round_start(mut commands: Commands) {
+    commands.insert_resource(RoundStart(Instant::now()));
+}
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {

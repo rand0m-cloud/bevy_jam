@@ -213,4 +213,10 @@ fn debug_toggle_shelter_mode(mut commands: Commands, state: Res<CurrentState<Gam
             commands.insert_resource(NextState(GameState::Playing));
         }
     }
+
+    if input.is_action_just_pressed("ui_cancel", false) {
+        if state.0 == GameState::Sheltered {
+            commands.insert_resource(NextState(GameState::Playing));
+        }
+    }
 }

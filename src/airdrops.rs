@@ -261,7 +261,6 @@ fn airdrop_indicator(
             indicator_label.set_text(format!("{:.0}m", distance / 8.0));
         } else {
             indicator.set_visible(false);
-            return;
         }
     } else {
         indicator.set_visible(false);

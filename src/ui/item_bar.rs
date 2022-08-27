@@ -21,6 +21,9 @@ pub struct ItemSlotTexture(u16);
 #[derive(Component)]
 pub struct ItemSlotBackground(u16);
 
+#[derive(Component)]
+pub struct ItemSlotCountLabel(u16);
+
 fn label_item_bar_nodes(
     mut commands: Commands,
     mut entities: Query<(&Name, Entity, &mut ErasedGodotRef)>,
@@ -46,14 +49,28 @@ fn label_item_bar_nodes(
                     .get_instance_id()
             };
 
+            let item_count_instance_id = unsafe {
+                reference
+                    .get::<Node>()
+                    .get_node("Control/ItemCounterLabel")
+                    .unwrap()
+                    .assume_safe()
+                    .get_instance_id()
+            };
+
             let name = name.to_string();
             let slot_num = &name["ItemSlot".len()..].parse::<u16>().unwrap() - 1;
 
-            item_textures.push((item_texture_instance_id, item_bg_instance_id, slot_num));
+            item_textures.push((
+                item_texture_instance_id,
+                item_bg_instance_id,
+                item_count_instance_id,
+                slot_num,
+            ));
         }
     }
 
-    for (texture_instance_id, bg_instance_id, slot_num) in item_textures {
+    for (texture_instance_id, bg_instance_id, item_count_instance_id, slot_num) in item_textures {
         let texture_ent = entities
             .iter()
             .find_map(|(_, ent, reference)| {
@@ -71,15 +88,33 @@ fn label_item_bar_nodes(
             })
             .unwrap();
         commands.entity(bg_ent).insert(ItemSlotBackground(slot_num));
+
+        let count_ent = entities
+            .iter()
+            .find_map(|(_, ent, reference)| {
+                (reference.instance_id() == item_count_instance_id).then_some(ent)
+            })
+            .unwrap();
+        commands
+            .entity(count_ent)
+            .insert(ItemSlotCountLabel(slot_num));
     }
 }
 
 fn update_item_bar(
     player: Query<&Player, Changed<Player>>,
     item_textures: Query<(&ItemSlotTexture, Entity)>,
+    item_counters: Query<(&ItemSlotCountLabel, Entity)>,
     mut entities: Query<&mut ErasedGodotRef>,
 ) {
     if let Ok(player) = player.get_single() {
+        let player_items = player
+            .inventory
+            .get_items()
+            .iter()
+            .filter(|(_, count)| **count > 0)
+            .collect::<Vec<_>>();
+
         let mut item_bar_texture_ents = item_textures
             .iter()
             .map(|(texture, ent)| (texture.0, ent))
@@ -89,11 +124,8 @@ fn update_item_bar(
         let resource_loader = ResourceLoader::godot_singleton();
 
         let mut item_bar_count = 0;
-        player
-            .inventory
-            .get_items()
+        player_items
             .iter()
-            .filter(|(_, count)| **count > 0)
             .zip(item_bar_texture_ents.iter())
             .for_each(|((item, _count), (_texture, texture_ent))| {
                 item_bar_count += 1;
@@ -111,6 +143,20 @@ fn update_item_bar(
             let mut texture_node = entities.get_mut(*texture_ent).unwrap();
             let texture_node = texture_node.get::<TextureRect>();
             texture_node.set_texture(Null::null());
+        }
+
+        // update item counters
+        let mut item_counter_ents = item_counters.iter().collect::<Vec<_>>();
+        item_counter_ents.sort_by(|(slot_a, _), (slot_b, _)| slot_a.0.cmp(&slot_b.0));
+
+        for (slot, ent) in item_counter_ents {
+            let mut counter = entities.get_mut(ent).unwrap();
+            let text = player_items
+                .get(slot.0 as usize)
+                .map(|(_, count)| count.to_string())
+                .unwrap_or_else(|| "".to_string());
+
+            counter.get::<Label>().set_text(text);
         }
     }
 }

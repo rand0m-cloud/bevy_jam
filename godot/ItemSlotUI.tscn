@@ -21,3 +21,19 @@ size_flags_horizontal = 7
 size_flags_vertical = 5
 expand = true
 stretch_mode = 5
+
+[node name="Control" type="Control" parent="."]
+margin_left = 32.0
+margin_top = 32.0
+margin_right = 32.0
+margin_bottom = 32.0
+
+[node name="ItemCounterLabel" type="Label" parent="Control"]
+margin_top = 4.0
+margin_right = 25.0
+margin_bottom = 29.0
+rect_min_size = Vector2( 25, 25 )
+rect_scale = Vector2( 1.5, 1.5 )
+custom_colors/font_color = Color( 0.8, 0, 0, 1 )
+align = 1
+valign = 1

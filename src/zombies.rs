@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use crate::{
     player::{Player, PlayerInteractVolume},
-    GameState, Hp, Score,
+    GameState, Hp, RoundStart, Score,
 };
 use bevy_asset_loader::prelude::*;
 use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
@@ -12,7 +12,7 @@ use rand::prelude::*;
 pub struct ZombiesPlugin;
 impl Plugin for ZombiesPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(SpawnTimer(Timer::from_seconds(1.0, true)))
+        app.insert_resource(SpawnTimer(Timer::from_seconds(0.5, true)))
             .add_exit_system(GameState::Loading, populate)
             .add_system(zombie_bites.run_in_state(GameState::Playing))
             .add_system(
@@ -65,7 +65,7 @@ fn populate(mut commands: Commands, player: Query<&Transform2D, With<Player>>) {
         .map(|transform| transform.origin)
         .unwrap_or_default();
 
-    for _ in 1..100 {
+    for _ in 1..50 {
         let origin = random_displacement(1000, 3000) + player_origin;
         spawn_zombie(&mut commands, origin);
     }
@@ -79,23 +79,28 @@ fn spawn_zombies(
     time: Res<Time>,
     zombie_assets: Res<ZombieAssets>,
     mut resources: ResMut<Assets<GodotResource>>,
+    round_start: Res<RoundStart>,
 ) {
     timer.0.tick(time.delta());
 
     if timer.0.just_finished() {
         let curve = resources.get_mut(&zombie_assets.population_curve).unwrap();
 
-        let population_target = 200.0;
+        let population_target = f64::min(
+            75.0 + (round_start.0.elapsed().as_secs_f64() / 2.5).round(),
+            300.0,
+        );
         let population = zombies.iter().count() as f64;
         let probability = if population < population_target {
             curve
                 .get::<Curve>()
                 .unwrap()
-                .interpolate_baked(population / 200.0)
+                .interpolate_baked(population / population_target)
         } else {
             0.0
         };
 
+        debug!("Population target is {population_target}");
         debug!("Current population is {population}, testing with a {probability}");
         if random::<f64>() > probability {
             return;

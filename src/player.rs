@@ -102,7 +102,7 @@ pub enum Activity {
 }
 
 #[derive(Debug, Component)]
-struct Stamina(f32);
+pub struct Stamina(pub f32);
 
 #[derive(Debug, Component)]
 struct ShotAudio;

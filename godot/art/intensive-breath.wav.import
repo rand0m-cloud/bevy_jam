@@ -1,0 +1,21 @@
+[remap]
+
+importer="wav"
+type="AudioStreamSample"
+path="res://.import/intensive-breath.wav-936b133868dc9f03005853031f26cd3a.sample"
+
+[deps]
+
+source_file="res://art/intensive-breath.wav"
+dest_files=[ "res://.import/intensive-breath.wav-936b133868dc9f03005853031f26cd3a.sample" ]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop=true
+compress/mode=0

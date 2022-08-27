@@ -12,8 +12,8 @@ use bevy_godot::prelude::{
 use iyes_loopless::prelude::*;
 
 // TODO: Is there a way to set those in Godot and read them here? It would be nice to be able to experiment with constants on the fly.
-const WALKING_SPEED: f32 = 40.0;
-const RUNNING_SPEED: f32 = 100.0;
+const WALKING_SPEED: f32 = 70.0;
+const RUNNING_SPEED: f32 = 150.0;
 const TURNING_SPEED: f64 = 4.0;
 
 pub struct PlayerPlugin;
@@ -21,6 +21,7 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(label_player)
             .add_startup_system(label_shot_audio)
+            .add_startup_system(label_breath_audio)
             .add_startup_system(label_goal)
             .add_startup_system(label_target)
             .add_system(
@@ -28,6 +29,7 @@ impl Plugin for PlayerPlugin {
                     .as_physics_system()
                     .run_not_in_state(GameState::Loading),
             )
+            .add_system(apply_fatigue.as_physics_system())
             .add_system(aim.as_physics_system().run_in_state(GameState::Playing))
             .add_system(
                 set_goal
@@ -96,7 +98,18 @@ pub enum Activity {
 }
 
 #[derive(Debug, Component)]
+pub struct Stamina(pub f32);
+
+#[derive(Debug, Component)]
 struct ShotAudio;
+
+#[derive(Debug, Component, PartialEq, Eq)]
+enum BreathAudio {
+    OutOfBreath,
+    Fatigued,
+    Intensive,
+    None,
+}
 
 #[derive(Debug, Component)]
 pub struct Bullet;
@@ -110,6 +123,7 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands
         .entity(player_ent)
         .insert(Player::default())
+        .insert(Stamina(1.0))
         .insert(Activity::Standing);
 
     let player_interact_ent = entities
@@ -130,6 +144,20 @@ fn label_shot_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands.entity(goal).insert(ShotAudio);
 }
 
+fn label_breath_audio(mut commands: Commands, entities: Query<(&Name, Entity)>) {
+    for (name, entity) in entities.iter() {
+        let component = match name.as_str() {
+            "OutOfBreathAudio" => BreathAudio::OutOfBreath,
+            "FatiguedBreathAudio" => BreathAudio::Fatigued,
+            "IntensiveBreathAudio" => BreathAudio::Intensive,
+            // NOTE: None variant is intentionally never used. It's for silencing the breath.
+            _ => continue,
+        };
+        debug!("Labeled {component:?}");
+        commands.entity(entity).insert(component);
+    }
+}
+
 fn label_goal(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     let goal = entities
         .iter()
@@ -148,9 +176,34 @@ fn label_target(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands.entity(target).insert(Target);
 }
 
+fn apply_fatigue(
+    mut entities: Query<(&mut Stamina, &Activity)>,
+    mut time: SystemDelta,
+    state: Res<CurrentState<GameState>>,
+) {
+    let delta = time.delta_seconds();
+
+    if state.0 != GameState::Playing {
+        return;
+    }
+
+    for (mut stamina, activity) in entities.iter_mut() {
+        let recovery_time = match activity {
+            Activity::Standing => 15.,
+            Activity::Walking => 10.,
+            Activity::Running => -15.,
+        };
+
+        let fatigue = delta * (recovery_time / 60.0);
+        stamina.0 += fatigue;
+        stamina.0 = stamina.0.clamp(0.0, 1.0);
+    }
+}
+
 fn move_player(
-    mut player: Query<(&mut ErasedGodotRef, &mut Activity), With<Player>>,
+    mut player: Query<(&mut ErasedGodotRef, &mut Activity, &Stamina), With<Player>>,
     mut goal: Query<(&Transform2D, &mut ErasedGodotRef), (With<Goal>, Without<Player>)>,
+    mut breath_audio: Query<(&mut ErasedGodotRef, &BreathAudio), (Without<Player>, Without<Goal>)>,
     target: Query<&Transform2D, With<Target>>,
     state: Res<CurrentState<GameState>>,
     // HACK: this system accesses the physics server and needs to be run on the
@@ -158,10 +211,25 @@ fn move_player(
     // main thread
     _scene_tree: SceneTreeRef,
 ) {
-    let (mut player, mut activity) = player.single_mut();
+    let (mut player, mut activity, stamina) = player.single_mut();
     let (goal_transform, mut goal_reference) = goal.single_mut();
     let goal = goal_transform.origin;
     let target = target.single().origin;
+
+    let mut play_breath_audio = |current: BreathAudio| {
+        for (mut audio, label) in breath_audio.iter_mut() {
+            let audio = audio.get::<AudioStreamPlayer>();
+            if label == &current {
+                if !audio.is_playing() {
+                    debug!("Playing {label:?}");
+                    audio.play(0.0);
+                }
+            } else if audio.is_playing() {
+                debug!("Stopping {label:?}");
+                audio.stop();
+            }
+        }
+    };
 
     let physics_server = unsafe { Physics2DServer::godot_singleton() };
     let body = unsafe {
@@ -180,10 +248,15 @@ fn move_player(
 
     match *activity {
         Activity::Standing => {
+            play_breath_audio(BreathAudio::None);
             stop(body);
             turn_toward(body, target);
         }
         Activity::Walking => {
+            if stamina.0 > 0.5 {
+                play_breath_audio(BreathAudio::None);
+            };
+
             let deviation = turn_toward(body, goal);
             if deviation.abs() > 1.0 {
                 advance(body, 0.0)
@@ -200,6 +273,18 @@ fn move_player(
             }
         }
         Activity::Running => {
+            if stamina.0 < 0.01 {
+                play_breath_audio(BreathAudio::OutOfBreath);
+
+                debug!("Out of breath.");
+                *activity = Activity::Walking;
+                debug!("Now {activity:?}.");
+            } else if stamina.0 < 0.3 {
+                play_breath_audio(BreathAudio::Fatigued);
+            } else if stamina.0 < 0.75 {
+                play_breath_audio(BreathAudio::Intensive);
+            };
+
             let deviation = turn_toward(body, goal);
             if deviation.abs() > 1.0 {
                 advance(body, WALKING_SPEED)
@@ -213,7 +298,7 @@ fn move_player(
 
                 *activity = Activity::Walking;
                 debug!("Now {activity:?}");
-            }
+            };
         }
     };
 }
@@ -400,16 +485,17 @@ fn place_trap(
 }
 
 fn on_restart(
-    mut player: Query<(&mut Player, &mut Activity)>,
+    mut player: Query<(&mut Player, &mut Activity, &mut Stamina)>,
     mut goal: Query<&mut ErasedGodotRef, (With<Goal>, Without<Target>)>,
     mut target: Query<&mut ErasedGodotRef, (With<Target>, Without<Goal>)>,
 ) {
-    let (mut player, mut activity) = player.single_mut();
+    let (mut player, mut activity, mut stamina) = player.single_mut();
     let mut goal = goal.single_mut();
     let mut target = target.single_mut();
 
     player.reset();
     *activity = Activity::Standing;
+    stamina.0 = 1.0;
 
     goal.get::<Node2D>().set_visible(false);
     target.get::<Node2D>().set_visible(false);

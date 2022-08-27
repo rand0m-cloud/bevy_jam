@@ -1,0 +1,21 @@
+[remap]
+
+importer="wav"
+type="AudioStreamSample"
+path="res://.import/out-of-breath.wav-65fa7e96047ae3bd6ec4525a601e2ec7.sample"
+
+[deps]
+
+source_file="res://art/out-of-breath.wav"
+dest_files=[ "res://.import/out-of-breath.wav-65fa7e96047ae3bd6ec4525a601e2ec7.sample" ]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop=false
+compress/mode=0

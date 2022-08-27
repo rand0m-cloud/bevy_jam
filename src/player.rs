@@ -485,16 +485,17 @@ fn place_trap(
 }
 
 fn on_restart(
-    mut player: Query<(&mut Player, &mut Activity)>,
+    mut player: Query<(&mut Player, &mut Activity, &mut Stamina)>,
     mut goal: Query<&mut ErasedGodotRef, (With<Goal>, Without<Target>)>,
     mut target: Query<&mut ErasedGodotRef, (With<Target>, Without<Goal>)>,
 ) {
-    let (mut player, mut activity) = player.single_mut();
+    let (mut player, mut activity, mut stamina) = player.single_mut();
     let mut goal = goal.single_mut();
     let mut target = target.single_mut();
 
     player.reset();
     *activity = Activity::Standing;
+    stamina.0 = 1.0;
 
     goal.get::<Node2D>().set_visible(false);
     target.get::<Node2D>().set_visible(false);

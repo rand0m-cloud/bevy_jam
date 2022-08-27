@@ -29,11 +29,7 @@ impl Plugin for PlayerPlugin {
                     .as_physics_system()
                     .run_not_in_state(GameState::Loading),
             )
-            .add_system(
-                apply_fatigue
-                    .as_physics_system()
-                    .run_in_state(GameState::Playing),
-            )
+            .add_system(apply_fatigue.as_physics_system())
             .add_system(aim.as_physics_system().run_in_state(GameState::Playing))
             .add_system(
                 set_goal
@@ -180,18 +176,26 @@ fn label_target(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     commands.entity(target).insert(Target);
 }
 
-fn apply_fatigue(mut entities: Query<(&mut Stamina, &Activity)>, mut time: SystemDelta) {
+fn apply_fatigue(
+    mut entities: Query<(&mut Stamina, &Activity)>,
+    mut time: SystemDelta,
+    state: Res<CurrentState<GameState>>,
+) {
     let delta = time.delta_seconds();
+
+    if state.0 != GameState::Playing {
+        return;
+    }
 
     for (mut stamina, activity) in entities.iter_mut() {
         let recovery_time = match activity {
-            Activity::Standing => 30.,
-            Activity::Walking => 60.,
-            Activity::Running => -60.,
+            Activity::Standing => 15.,
+            Activity::Walking => 10.,
+            Activity::Running => -15.,
         };
 
-        let fatigue = delta * -1.0 / recovery_time;
-        stamina.0 -= fatigue;
+        let fatigue = delta * (recovery_time / 60.0);
+        stamina.0 += fatigue;
         stamina.0 = stamina.0.clamp(0.0, 1.0);
     }
 }

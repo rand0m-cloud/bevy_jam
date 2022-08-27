@@ -12,8 +12,8 @@ use bevy_godot::prelude::{
 use iyes_loopless::prelude::*;
 
 // TODO: Is there a way to set those in Godot and read them here? It would be nice to be able to experiment with constants on the fly.
-const WALKING_SPEED: f32 = 40.0;
-const RUNNING_SPEED: f32 = 100.0;
+const WALKING_SPEED: f32 = 70.0;
+const RUNNING_SPEED: f32 = 150.0;
 const TURNING_SPEED: f64 = 4.0;
 
 pub struct PlayerPlugin;

@@ -175,7 +175,7 @@ fn zombies_move(
             };
 
             let rotation = transform.rotation();
-            transform.set_rotation(rotation + 1.0 * turn * delta);
+            transform.set_rotation(rotation + 0.75 * turn * delta);
 
             direct_body_state.set_linear_velocity(transform.basis_xform_inv(Vector2::UP) * 70.0);
             direct_body_state.set_angular_velocity(0.0);

@@ -1,11 +1,11 @@
 use crate::{
-    crafting::{Item, Part},
+    crafting::{CraftingAssets, Item, Part},
     player::Player,
 };
 use bevy::log::*;
 use bevy_godot::prelude::{
     bevy_prelude::{Changed, EventReader, ParamSet, With, Without},
-    godot_prelude::Color,
+    godot_prelude::{Color, Null},
     *,
 };
 use iyes_loopless::prelude::*;
@@ -21,6 +21,7 @@ impl Plugin for ShelterUiPlugin {
             .add_system(debug_toggle_shelter_mode.as_visual_system())
             .add_system(listen_for_crafting_ui_presses.run_in_state(GameState::Sheltered))
             .add_system(update_recipe_text)
+            .add_system(update_recipe_preview.run_not_in_state(GameState::Loading))
             .add_enter_system(GameState::Sheltered, show_shelter_ui)
             .add_enter_system(GameState::Playing, hide_shelter_ui);
     }
@@ -31,6 +32,9 @@ struct ShelterUi;
 
 #[derive(Component)]
 struct CraftingUi;
+
+#[derive(Component)]
+struct CraftingUiRecipe;
 
 #[derive(Component)]
 struct CraftButton;
@@ -95,7 +99,11 @@ fn setup_shelter_ui(
             })
             .unwrap();
 
-        commands.entity(obj_ent).insert(CraftingUi).insert(item);
+        commands
+            .entity(obj_ent)
+            .insert(CraftingUi)
+            .insert(CraftingUiRecipe)
+            .insert(item);
     }
 
     // setup crafting target preview node
@@ -134,7 +142,7 @@ fn setup_shelter_ui(
 
 fn refresh_crafting_ui(
     player: &Player,
-    items: &mut Query<(&Item, &mut ErasedGodotRef), With<CraftingUi>>,
+    items: &mut Query<(&Item, &mut ErasedGodotRef), With<CraftingUiRecipe>>,
 ) {
     for (item, mut reference) in items.iter_mut() {
         let reference = reference.get::<Control>();
@@ -149,9 +157,9 @@ fn refresh_crafting_ui(
 }
 
 fn show_shelter_ui(
-    mut screen: Query<&mut ErasedGodotRef, (With<ShelterUi>, Without<CraftingUi>)>,
+    mut screen: Query<&mut ErasedGodotRef, (With<ShelterUi>, Without<CraftingUiRecipe>)>,
     player: Query<&Player>,
-    mut items: Query<(&Item, &mut ErasedGodotRef), With<CraftingUi>>,
+    mut items: Query<(&Item, &mut ErasedGodotRef), With<CraftingUiRecipe>>,
 ) {
     debug!("Showing shelter ui.");
     let mut screen = screen.single_mut();
@@ -175,7 +183,7 @@ fn listen_for_crafting_ui_presses(
     mut crafting_target: Query<&mut CraftingTarget>,
     mut queries: ParamSet<(
         Query<&mut ErasedGodotRef, With<CraftButton>>,
-        Query<(&Item, &mut ErasedGodotRef), With<CraftingUi>>,
+        Query<(&Item, &mut ErasedGodotRef), With<CraftingUiRecipe>>,
         Query<&mut ErasedGodotRef, With<CraftingTargetText>>,
     )>,
 ) {
@@ -283,5 +291,28 @@ fn update_recipe_text(
         }
 
         text.get::<RichTextLabel>().set_bbcode(recipe_bbcode);
+    }
+}
+
+fn update_recipe_preview(
+    mut crafting_target: Query<(&CraftingTarget, &mut ErasedGodotRef), Changed<CraftingTarget>>,
+    crafting_assets: Res<CraftingAssets>,
+    assets: Res<Assets<GodotResource>>,
+) {
+    if let Ok((crafting_target, mut reference)) = crafting_target.get_single_mut() {
+        if let Some(item) = crafting_target.0 {
+            let texture_handle = item.as_texture_handle(&crafting_assets);
+            let texture = assets
+                .get(texture_handle)
+                .unwrap()
+                .0
+                .clone()
+                .cast::<Texture>()
+                .unwrap();
+
+            reference.get::<TextureRect>().set_texture(texture);
+        } else {
+            reference.get::<TextureRect>().set_texture(Null::null());
+        }
     }
 }

@@ -1,16 +1,21 @@
-use crate::{player::Player, SelectedItemSlot};
+use crate::{crafting::CraftingAssets, player::Player, GameState, SelectedItemSlot};
 use bevy_godot::prelude::{
     bevy_prelude::Changed,
     godot_prelude::{Color, Null},
     *,
 };
+use iyes_loopless::prelude::*;
 
 pub struct ItemBarUiPlugin;
 
 impl Plugin for ItemBarUiPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(label_item_bar_nodes)
-            .add_system(update_item_bar.as_visual_system())
+            .add_system(
+                update_item_bar
+                    .as_visual_system()
+                    .run_not_in_state(GameState::Loading),
+            )
             .add_system(update_selected_slot.as_visual_system());
     }
 }
@@ -106,6 +111,8 @@ fn update_item_bar(
     item_textures: Query<(&ItemSlotTexture, Entity)>,
     item_counters: Query<(&ItemSlotCountLabel, Entity)>,
     mut entities: Query<&mut ErasedGodotRef>,
+    crafting_assets: Res<CraftingAssets>,
+    assets: Res<Assets<GodotResource>>,
 ) {
     if let Ok(player) = player.get_single() {
         let player_items = player
@@ -121,8 +128,6 @@ fn update_item_bar(
             .collect::<Vec<_>>();
         item_bar_texture_ents.sort_by(|(a, _), (b, _)| a.cmp(b));
 
-        let resource_loader = ResourceLoader::godot_singleton();
-
         let mut item_bar_count = 0;
         player_items
             .iter()
@@ -132,10 +137,10 @@ fn update_item_bar(
                 let mut texture_node = entities.get_mut(*texture_ent).unwrap();
                 let texture_node = texture_node.get::<TextureRect>();
 
-                let texture = resource_loader
-                    .load(item.as_texture_path(), "", false)
-                    .unwrap();
-                texture_node.set_texture(texture.cast::<Texture>().unwrap());
+                let texture_handle = item.as_texture_handle(&crafting_assets);
+                let texture = assets.get(texture_handle).unwrap();
+
+                texture_node.set_texture(texture.0.clone().cast::<Texture>().unwrap());
             });
 
         // set remaining slots to empty texture

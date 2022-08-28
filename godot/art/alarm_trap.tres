@@ -1,0 +1,5 @@
+[gd_resource type="StreamTexture" format=2]
+
+[resource]
+flags = 4
+load_path = "res://.import/alarm_trap.png-df4ed92f69a90ace5d6f81b70dba18b8.stex"

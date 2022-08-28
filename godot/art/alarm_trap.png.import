@@ -2,11 +2,16 @@
 
 importer="texture"
 type="StreamTexture"
-valid=false
+path="res://.import/alarm_trap.png-df4ed92f69a90ace5d6f81b70dba18b8.stex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://art/alarm_trap.png"
+dest_files=[ "res://.import/alarm_trap.png-df4ed92f69a90ace5d6f81b70dba18b8.stex" ]
+
 [params]
 
 compress/mode=0

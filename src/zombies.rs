@@ -2,6 +2,7 @@ use std::f32::consts::PI;
 
 use crate::{
     player::{Player, PlayerInteractVolume},
+    traps::alarm::Alarm,
     GameState, Hp, RoundStart, Score,
 };
 use bevy_asset_loader::prelude::*;
@@ -42,7 +43,7 @@ struct SpawnTimer(Timer);
 
 // A target represents a point where a zombie wants to be
 #[derive(Debug, Component)]
-struct Target(Vector2);
+pub struct Target(pub Vector2);
 
 impl Target {
     fn random(origin: Vector2) -> Self {
@@ -192,14 +193,29 @@ fn zombies_move(
     }
 }
 
-fn zombie_targeting(
+pub fn zombie_targeting(
     mut zombies: Query<(&Transform2D, &mut Target), With<Zombie>>,
     player: Query<&Transform2D, With<Player>>,
+    alarms: Query<(&Alarm, &Transform2D)>,
 ) {
     for (zombie, mut target) in zombies.iter_mut() {
+        let closest_alarm = alarms
+            .iter()
+            .filter_map(|(alarm, transform)| alarm.is_active().then_some(transform.origin))
+            .min_by(|alarm_a, alarm_b| {
+                zombie
+                    .origin
+                    .distance_to(*alarm_a)
+                    .partial_cmp(&zombie.origin.distance_to(*alarm_b))
+                    .unwrap()
+            });
+
         let player = player.single();
-        if zombie.origin.distance_to(player.origin) < 750.0 {
-            *target = Target(player.origin);
+
+        let closest_target = closest_alarm.unwrap_or(player.origin);
+
+        if zombie.origin.distance_to(closest_target) < 750.0 {
+            *target = Target(closest_target);
         } else if zombie.origin.distance_to(target.0) < 200.0 {
             *target = Target::random(zombie.origin);
         }

@@ -1,4 +1,7 @@
-use bevy_godot::prelude::{bevy_prelude::Added, *};
+use bevy_godot::prelude::{
+    bevy_prelude::{Added, Without},
+    *,
+};
 
 pub struct AlarmPlugin;
 impl Plugin for AlarmPlugin {
@@ -32,19 +35,59 @@ impl Alarm {
     }
 }
 
-fn label_alarms(mut commands: Commands, entities: Query<(&Groups, Entity), Added<ErasedGodotRef>>) {
-    for (groups, ent) in entities.iter() {
+#[derive(Debug, Component)]
+pub struct AlarmAudioPlayer(Entity);
+
+fn label_alarms(
+    mut commands: Commands,
+    mut entities: Query<(&Groups, Entity, &mut ErasedGodotRef), Added<ErasedGodotRef>>,
+) {
+    let mut alarms = vec![];
+    for (groups, ent, mut reference) in entities.iter_mut() {
         if groups.is("alarm") {
             commands.entity(ent).insert(Alarm::default());
+
+            let audio_player_instance_id = unsafe {
+                reference
+                    .get::<Node2D>()
+                    .get_node("AudioStreamPlayer2D")
+                    .unwrap()
+                    .assume_safe()
+                    .get_instance_id()
+            };
+            alarms.push((ent, audio_player_instance_id));
         }
+    }
+
+    for (alarm_ent, audio_player_instance_id) in alarms {
+        let audio_player = entities
+            .iter()
+            .find_map(|(_, ent, reference)| {
+                (reference.instance_id() == audio_player_instance_id).then_some(ent)
+            })
+            .unwrap();
+
+        commands
+            .entity(audio_player)
+            .insert(AlarmAudioPlayer(alarm_ent));
     }
 }
 
-fn process_alarms(mut alarms: Query<(&mut Alarm, &mut ErasedGodotRef)>, mut time: SystemDelta) {
+fn process_alarms(
+    mut alarms: Query<(&mut Alarm, &mut ErasedGodotRef, Entity)>,
+    mut alarm_sfx_players: Query<(&AlarmAudioPlayer, &mut ErasedGodotRef), Without<Alarm>>,
+    mut time: SystemDelta,
+) {
     let delta = time.delta();
 
-    for (mut alarm, mut reference) in alarms.iter_mut() {
+    for (mut alarm, mut reference, alarm_ent) in alarms.iter_mut() {
         let reference = reference.get::<Node2D>();
+
+        let mut sound = alarm_sfx_players
+            .iter_mut()
+            .find_map(|(audio, reference)| (audio.0 == alarm_ent).then_some(reference))
+            .unwrap();
+        let sound = sound.get::<AudioStreamPlayer2D>();
 
         alarm.lifetime_timer.tick(delta);
         if alarm.lifetime_timer.finished() {
@@ -57,12 +100,14 @@ fn process_alarms(mut alarms: Query<(&mut Alarm, &mut ErasedGodotRef)>, mut time
             if alarm.active_period.just_finished() {
                 alarm.inactive_period.reset();
                 alarm.is_active = false;
+                sound.stop();
             }
         } else {
             alarm.inactive_period.tick(delta);
             if alarm.inactive_period.just_finished() {
                 alarm.active_period.reset();
                 alarm.is_active = true;
+                sound.play(0.0);
             }
         }
     }

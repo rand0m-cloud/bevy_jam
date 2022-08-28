@@ -25,7 +25,7 @@ impl Part {
     pub const ALL: &'static [Part] = &[
         Self::Battery,
         Self::Electronics,
-        //Self::Buzzer,
+        Self::Buzzer,
         Self::Explosive,
         //Self::Motor,
     ];

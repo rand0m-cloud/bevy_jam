@@ -386,11 +386,11 @@ fn toggle_running(mut activity: Query<&mut Activity, With<Player>>) {
     let input = Input::godot_singleton();
     let mut activity = activity.single_mut();
 
-    if input.is_action_just_pressed("toggle_running", false) {
-        *activity = match *activity {
-            Activity::Running => Activity::Walking,
-            _ => Activity::Running,
-        };
+    if input.is_action_just_pressed("sprint", false) {
+        *activity = Activity::Running;
+        debug!("Now {activity:?}");
+    } else if input.is_action_just_released("sprint", false) {
+        *activity = Activity::Walking;
         debug!("Now {activity:?}");
     }
 }

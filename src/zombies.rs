@@ -216,6 +216,8 @@ pub fn zombie_targeting(
 
         if zombie.origin.distance_to(closest_target) < 750.0 {
             *target = Target(closest_target);
+        } else if zombie.origin.distance_to(player.origin) < 750.0 {
+            *target = Target(player.origin);
         } else if zombie.origin.distance_to(target.0) < 200.0 {
             *target = Target::random(zombie.origin);
         }

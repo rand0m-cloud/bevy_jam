@@ -333,18 +333,18 @@ fn stop(body: TRef<Physics2DDirectBodyState>) {
 
 fn aim(
     mut target: Query<(&mut ErasedGodotRef, &mut Transform2D), (With<Target>, Without<Player>)>,
-    mut player: Query<(&mut ErasedGodotRef, &mut Activity), (With<Player>, Without<Target>)>,
+    mut player: Query<(&Player, &mut ErasedGodotRef, &mut Activity), Without<Target>>,
     mut goal: Query<&mut ErasedGodotRef, (Without<Player>, Without<Target>, With<Goal>)>,
 ) {
     let input = Input::godot_singleton();
-    let (mut player, mut activity) = player.single_mut();
+    let (player, mut player_reference, mut activity) = player.single_mut();
     let (mut target, mut transform) = target.single_mut();
     let mut goal = goal.single_mut();
-    let player = player.get::<Node2D>();
+    let player_reference = player_reference.get::<Node2D>();
 
-    if input.is_action_pressed("aim", false) {
+    if input.is_action_pressed("aim", false) && player.ammo_count > 0 {
         // TODO: Getting mouse position from player seems odd. Isn't there a more obvious way?
-        let mouse_position = player.get_global_mouse_position();
+        let mouse_position = player_reference.get_global_mouse_position();
         debug!("New target is {mouse_position:?}");
 
         transform.origin = mouse_position;

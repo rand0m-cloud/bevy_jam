@@ -19,7 +19,8 @@ fn build_app(app: &mut App) {
         .add_loading_state(
             LoadingState::new(GameState::Loading)
                 .continue_to_state(GameState::Playing)
-                .with_collection::<zombies::ZombieAssets>(),
+                .with_collection::<zombies::ZombieAssets>()
+                .with_collection::<crafting::CraftingAssets>(),
         )
         .insert_resource(Score(0))
         .insert_resource(SelectedItemSlot(Some(0)))

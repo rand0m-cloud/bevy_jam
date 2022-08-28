@@ -61,9 +61,10 @@ pub struct Player {
 
 impl Default for Player {
     fn default() -> Self {
-        // setup initial inventory with parts for a bomb
+        // setup initial inventory with parts for a bomb and an alarm
         let mut inventory = Inventory::default();
         inventory.add_parts(&Item::ProximityBomb.ingredients());
+        inventory.add_parts(&Item::Alarm.ingredients());
 
         Player {
             inventory,

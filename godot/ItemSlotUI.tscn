@@ -20,7 +20,7 @@ rect_min_size = Vector2( 48, 48 )
 size_flags_horizontal = 7
 size_flags_vertical = 5
 expand = true
-stretch_mode = 5
+stretch_mode = 6
 
 [node name="Control" type="Control" parent="."]
 margin_left = 32.0

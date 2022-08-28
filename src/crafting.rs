@@ -1,7 +1,16 @@
 use bevy::log::*;
-use bevy_godot::prelude::*;
+use bevy_asset_loader::prelude::*;
+use bevy_godot::prelude::{bevy_prelude::Mut, *};
 use rand::prelude::SliceRandom;
 use std::collections::HashMap;
+
+#[derive(Debug, AssetCollection)]
+pub struct CraftingAssets {
+    #[asset(path = "art/drone.tres")]
+    proximity_bomb: Handle<GodotResource>,
+    #[asset(path = "art/alarm_trap.tres")]
+    alarm: Handle<GodotResource>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component, PartialOrd, Ord)]
 pub enum Part {
@@ -16,7 +25,7 @@ impl Part {
     pub const ALL: &'static [Part] = &[
         Self::Battery,
         Self::Electronics,
-        //Self::Buzzer,
+        Self::Buzzer,
         Self::Explosive,
         //Self::Motor,
     ];
@@ -52,13 +61,18 @@ impl Item {
         }
     }
 
-    pub fn as_texture_path(&self) -> &'static str {
-        "res://icon.png"
+    pub fn as_texture_handle<'a>(&self, assets: &'a CraftingAssets) -> &'a Handle<GodotResource> {
+        match self {
+            Self::ProximityBomb => &assets.proximity_bomb,
+            Self::Alarm => &assets.alarm,
+            Self::Drone => todo!("missing drone art"),
+        }
     }
 
     pub fn scene_path(&self) -> &'static str {
         match self {
             Self::ProximityBomb => "res://traps/ProximityBomb.tscn",
+            Self::Alarm => "res://traps/Alarm.tscn",
             _ => panic!("do not have a scene path for {:?}", self),
         }
     }

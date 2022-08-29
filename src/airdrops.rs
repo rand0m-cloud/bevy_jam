@@ -32,7 +32,10 @@ impl Plugin for AirDropsPlugin {
 }
 
 #[derive(Component)]
-pub struct AirDrop(Vec<Part>);
+pub struct AirDrop(pub Vec<Part>);
+
+#[derive(Component)]
+pub struct BonusAirDrop;
 
 #[derive(Component)]
 pub struct AirDropIndicator;
@@ -72,7 +75,7 @@ fn label_air_drop_progressbar(mut commands: Commands, entities: Query<(&Name, En
 
 fn label_airdrops(
     mut commands: Commands,
-    entities: Query<(&Groups, Entity), Added<ErasedGodotRef>>,
+    entities: Query<(&Groups, Entity), (Added<ErasedGodotRef>, Without<AirDrop>)>,
 ) {
     for (groups, ent) in entities.iter() {
         if groups.is("airdrop") {
@@ -125,7 +128,7 @@ fn drop_airdrops(
 fn collect_airdrops(
     player_interact_volume: Query<&Collisions, With<PlayerInteractVolume>>,
     mut player: Query<&mut Player>,
-    mut airdrops: Query<(&AirDrop, &mut ErasedGodotRef)>,
+    mut airdrops: Query<(&AirDrop, &mut ErasedGodotRef, Option<&BonusAirDrop>)>,
     mut airdrop_timer: ResMut<AirDropTimer>,
     mut item_log: EventWriter<ItemLogEvent>,
     mut score: ResMut<Score>,
@@ -133,7 +136,7 @@ fn collect_airdrops(
     let player_interact_volume = player_interact_volume.single();
 
     for ent in player_interact_volume.recent_collisions() {
-        if let Ok((air_drop, mut reference)) = airdrops.get_mut(*ent) {
+        if let Ok((air_drop, mut reference, bonus)) = airdrops.get_mut(*ent) {
             let reference = reference.get::<Node>();
             reference.queue_free();
 
@@ -147,7 +150,9 @@ fn collect_airdrops(
             }
             item_log.send(ItemLogEvent(format!("Picked up {} bullets", bullets)));
 
-            airdrop_timer.0.reset();
+            if bonus.is_none() {
+                airdrop_timer.0.reset();
+            }
 
             score.0 += 250;
             player.ammo_count += bullets;
@@ -188,7 +193,16 @@ fn airdrop_indicator(
 
     let player = player.single();
 
-    if let Ok((air_drop_transform, mut air_drop)) = airdrops.get_single_mut() {
+    // get the closest airdrop
+    let airdrop = airdrops
+        .iter_mut()
+        .min_by(|(transform_a, _), (transform_b, _)| {
+            let dist_a = player.origin.distance_to(transform_a.origin);
+            let dist_b = player.origin.distance_to(transform_b.origin);
+            dist_a.partial_cmp(&dist_b).unwrap()
+        });
+
+    if let Some((air_drop_transform, mut air_drop)) = airdrop {
         let mut airdrop_screen_origin = {
             let air_drop = air_drop.get::<Node2D>();
             air_drop.get_global_transform_with_canvas().origin

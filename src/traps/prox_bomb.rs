@@ -1,9 +1,17 @@
-use crate::Hp;
+use crate::{
+    airdrops::{AirDrop, BonusAirDrop},
+    crafting::Part,
+    player::Player,
+    ui::text_log::ItemLogEvent,
+    Hp,
+};
 use bevy::log::*;
 use bevy_godot::prelude::{
-    bevy_prelude::{Added, Without},
+    bevy_prelude::{Added, EventWriter, With, Without},
+    godot_prelude::Vector2,
     *,
 };
+use std::{f32::consts::PI, iter};
 
 pub struct ProximityBombPlugin;
 impl Plugin for ProximityBombPlugin {
@@ -61,24 +69,55 @@ fn label_proximity_bombs(
 }
 
 fn process_proximity_bombs(
+    mut commands: Commands,
     mut bombs: Query<(&mut ProximityBomb, Entity, &Collisions, &mut ErasedGodotRef)>,
     mut animation_player: Query<
         (&ProximityBombAnimationPlayer, &mut ErasedGodotRef),
         Without<ProximityBomb>,
     >,
     mut entities: Query<&mut Hp>,
+    player: Query<&Transform2D, With<Player>>,
     mut time: SystemDelta,
+    mut log: EventWriter<ItemLogEvent>,
 ) {
     let delta = time.delta();
+
     for (mut bomb, bomb_ent, collisions, mut reference) in bombs.iter_mut() {
         if let Some(bomb_timer) = bomb.detonate_timer.as_mut() {
             bomb_timer.tick(delta);
             if bomb_timer.just_finished() {
                 info!("proximity bomb went off");
+                let mut killed_zombies = 0;
+
                 for ent in collisions.colliding() {
                     if let Ok(mut obj_hp) = entities.get_mut(*ent) {
                         obj_hp.0 = 0.0;
+                        killed_zombies += 1;
                     }
+                }
+
+                if killed_zombies > 5 {
+                    log.send(ItemLogEvent(format!(
+                        "{}x Killing Spree! An extra airdrop is on the way!",
+                        killed_zombies
+                    )));
+
+                    let mut airdrop_transform = *player.single();
+
+                    airdrop_transform.set_rotation(rand::random::<f32>() * 2.0 * PI);
+                    airdrop_transform.0 = airdrop_transform.translated(Vector2::UP * 1000.0);
+                    airdrop_transform.set_rotation(0.0);
+
+                    commands
+                        .spawn()
+                        .insert(GodotScene::from_path("res://Airdrop.tscn"))
+                        .insert(AirDrop(
+                            iter::repeat_with(|| Part::random())
+                                .take(5)
+                                .collect::<Vec<_>>(),
+                        ))
+                        .insert(BonusAirDrop)
+                        .insert(airdrop_transform);
                 }
             }
         } else if !collisions.recent_collisions().is_empty() {

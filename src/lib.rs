@@ -5,7 +5,7 @@ use bevy_godot::prelude::*;
 use iyes_loopless::prelude::*;
 use std::time::Instant;
 
-mod airdrops;
+pub mod airdrops;
 mod crafting;
 mod player;
 mod traps;

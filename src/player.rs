@@ -15,7 +15,7 @@ use iyes_loopless::prelude::*;
 const WALKING_SPEED: f32 = 70.0;
 const RUNNING_SPEED: f32 = 150.0;
 const TURNING_SPEED: f64 = 9.0;
-const REALOAD_TIME: f32 = 0.5;
+const RELOAD_TIME: f32 = 0.5;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -129,7 +129,7 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
         .entity(player_ent)
         .insert(Player::default())
         .insert(Stamina(1.0))
-        .insert(ReloadTimer(Timer::from_seconds(REALOAD_TIME, false)))
+        .insert(ReloadTimer(Timer::from_seconds(RELOAD_TIME, false)))
         .insert(Activity::Standing);
 
     let player_interact_ent = entities
@@ -338,16 +338,16 @@ fn stop(body: TRef<Physics2DDirectBodyState>) {
 
 fn aim(
     mut target: Query<(&mut ErasedGodotRef, &mut Transform2D), (With<Target>, Without<Player>)>,
-    mut player: Query<(&Player, &mut ErasedGodotRef, &mut Activity), Without<Target>>,
+    mut player: Query<(&Player, &mut ErasedGodotRef, &mut Activity, &ReloadTimer), Without<Target>>,
     mut goal: Query<&mut ErasedGodotRef, (Without<Player>, Without<Target>, With<Goal>)>,
 ) {
     let input = Input::godot_singleton();
-    let (player, mut player_reference, mut activity) = player.single_mut();
+    let (player, mut player_reference, mut activity, reload_timer) = player.single_mut();
     let (mut target, mut transform) = target.single_mut();
     let mut goal = goal.single_mut();
     let player_reference = player_reference.get::<Node2D>();
 
-    if input.is_action_pressed("aim", false) && player.ammo_count > 0 {
+    if input.is_action_pressed("aim", false) && player.ammo_count > 0 && reload_timer.0.finished() {
         // TODO: Getting mouse position from player seems odd. Isn't there a more obvious way?
         let mouse_position = player_reference.get_global_mouse_position();
         debug!("New target is {mouse_position:?}");
@@ -413,12 +413,11 @@ fn player_shoot(
     // Update the timer
     reloading.0.tick(time.delta());
 
-    if input.is_action_just_released("aim", false) && player.ammo_count > 0 {
+    if input.is_action_just_released("aim", false)
+        && player.ammo_count > 0
+        && reloading.0.finished()
+    {
         debug!("Shoot!");
-        if !reloading.0.finished() {
-            debug!("Not done reloading.");
-            return;
-        }
         reloading.0.reset();
 
         let bullet_transform = *player_transform;

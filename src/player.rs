@@ -371,7 +371,7 @@ fn set_goal(
     let (mut goal_transform, mut goal_reference) = goal.single_mut();
     let player = player.get::<Node2D>();
 
-    if input.is_action_just_pressed("set_goal", false) {
+    if input.is_action_pressed("set_goal", false) {
         // TODO: Getting mouse position from player seems odd. Isn't there a more obvious way?
         let mouse_position = player.get_global_mouse_position();
         debug!("New goal is {mouse_position:?}");

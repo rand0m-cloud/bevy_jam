@@ -2,7 +2,7 @@
 
 [ext_resource path="res://icon.png" type="Texture" id=1]
 [ext_resource path="res://art/alarm_trap.tres" type="Texture" id=2]
-[ext_resource path="res://art/drone.tres" type="Texture" id=3]
+[ext_resource path="res://art/bomb.tres" type="Texture" id=3]
 
 [node name="ShelterUI" type="Control"]
 anchor_right = 1.0

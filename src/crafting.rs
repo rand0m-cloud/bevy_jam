@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, AssetCollection)]
 pub struct CraftingAssets {
-    #[asset(path = "art/drone.tres")]
+    #[asset(path = "art/bomb.tres")]
     proximity_bomb: Handle<GodotResource>,
     #[asset(path = "art/alarm_trap.tres")]
     alarm: Handle<GodotResource>,

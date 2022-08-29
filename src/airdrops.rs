@@ -1,16 +1,17 @@
 use crate::{
     crafting::Part,
     player::{Player, PlayerInteractVolume},
+    ui::text_log::ItemLogEvent,
     GameState, Score,
 };
 use bevy::log::*;
 use bevy_godot::prelude::{
-    bevy_prelude::{Added, With, Without},
+    bevy_prelude::{Added, EventWriter, With, Without},
     godot_prelude::Vector2,
     *,
 };
 use iyes_loopless::prelude::*;
-use std::{f32::consts::PI, fmt::Write};
+use std::f32::consts::PI;
 
 pub struct AirDropsPlugin;
 impl Plugin for AirDropsPlugin {
@@ -21,14 +22,11 @@ impl Plugin for AirDropsPlugin {
 
         app.add_startup_system(label_air_drop_indicator)
             .add_startup_system(label_air_drop_progressbar)
-            .add_startup_system(label_pickup_text)
             .add_system(label_airdrops)
             .add_system(collect_airdrops)
             .add_system(drop_airdrops)
             .add_system(airdrop_indicator.as_visual_system())
-            .add_system(item_pickup_text.as_visual_system())
             .insert_resource(airdrop_timer)
-            .insert_resource(ItemPickupTextTimer(Timer::from_seconds(4.0, false)))
             .add_exit_system(GameState::GameOver, on_restart);
     }
 }
@@ -44,11 +42,6 @@ pub struct AirDropIndicatorLabel;
 
 #[derive(Component)]
 pub struct AirDropProgressBar;
-
-#[derive(Component)]
-pub struct ItemPickupText;
-
-pub struct ItemPickupTextTimer(Timer);
 
 pub struct AirDropTimer(Timer);
 
@@ -75,15 +68,6 @@ fn label_air_drop_progressbar(mut commands: Commands, entities: Query<(&Name, En
         .unwrap();
 
     commands.entity(ent).insert(AirDropProgressBar);
-}
-
-fn label_pickup_text(mut commands: Commands, entities: Query<(&Name, Entity)>) {
-    let ent = entities
-        .iter()
-        .find_map(|(name, ent)| (name.as_str() == "ItemPickupText").then_some(ent))
-        .unwrap();
-
-    commands.entity(ent).insert(ItemPickupText);
 }
 
 fn label_airdrops(
@@ -143,8 +127,7 @@ fn collect_airdrops(
     mut player: Query<&mut Player>,
     mut airdrops: Query<(&AirDrop, &mut ErasedGodotRef)>,
     mut airdrop_timer: ResMut<AirDropTimer>,
-    mut item_pickup_text: Query<&mut ErasedGodotRef, (Without<AirDrop>, With<ItemPickupText>)>,
-    mut item_pickup_timer: ResMut<ItemPickupTextTimer>,
+    mut item_log: EventWriter<ItemLogEvent>,
     mut score: ResMut<Score>,
 ) {
     let player_interact_volume = player_interact_volume.single();
@@ -157,21 +140,14 @@ fn collect_airdrops(
             let mut player = player.single_mut();
             player.inventory.add_parts(&air_drop.0);
 
-            let mut text_label = item_pickup_text.single_mut();
-            let text_label = text_label.get::<Label>();
-            let mut text = text_label.text().to_string();
-
             let bullets = 25;
 
             for part in air_drop.0.iter() {
-                writeln!(&mut text, "Picked up a {part:?}").unwrap();
+                item_log.send(ItemLogEvent(format!("Picked up a {part:?}")));
             }
-            writeln!(&mut text, "Picked up {} bullets", bullets).unwrap();
-
-            text_label.set_text(text);
+            item_log.send(ItemLogEvent(format!("Picked up {} bullets", bullets)));
 
             airdrop_timer.0.reset();
-            item_pickup_timer.0.reset();
 
             score.0 += 250;
             player.ammo_count += bullets;
@@ -264,20 +240,6 @@ fn airdrop_indicator(
         }
     } else {
         indicator.set_visible(false);
-    }
-}
-
-fn item_pickup_text(
-    mut time: SystemDelta,
-    mut text_timer: ResMut<ItemPickupTextTimer>,
-    mut text: Query<&mut ErasedGodotRef, With<ItemPickupText>>,
-) {
-    let delta = time.delta();
-
-    text_timer.0.tick(delta);
-    if text_timer.0.just_finished() {
-        let mut text = text.single_mut();
-        text.get::<Label>().set_text("");
     }
 }
 

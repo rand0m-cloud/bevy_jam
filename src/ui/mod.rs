@@ -6,6 +6,7 @@ mod item_bar;
 mod score;
 mod shelter;
 mod stamina;
+pub mod text_log;
 
 pub struct UiPlugin;
 
@@ -16,6 +17,7 @@ impl Plugin for UiPlugin {
             .add_plugin(item_bar::ItemBarUiPlugin)
             .add_plugin(score::ScoreUiPlugin)
             .add_plugin(ammo::AmmoUiPlugin)
-            .add_plugin(stamina::StaminaUiPlugin);
+            .add_plugin(stamina::StaminaUiPlugin)
+            .add_plugin(text_log::ItemLogPlugin);
     }
 }

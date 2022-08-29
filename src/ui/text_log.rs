@@ -21,16 +21,8 @@ impl ItemLogText {
             .extend(events.into_iter().cloned().map(|log| (log, now)));
     }
     fn update(&mut self) -> String {
-        let mut old_entries = vec![];
-        for (i, (_, time)) in self.entries.iter().enumerate() {
-            if time.elapsed() > Duration::from_secs_f32(4.0) {
-                old_entries.push(i);
-            }
-        }
-
-        old_entries.iter().rev().for_each(|i| {
-            self.entries.remove(*i);
-        });
+        self.entries
+            .retain(|entry| entry.1.elapsed() < Duration::from_secs_f32(4.0));
 
         self.entries
             .iter()

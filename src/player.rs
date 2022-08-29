@@ -15,6 +15,7 @@ use iyes_loopless::prelude::*;
 const WALKING_SPEED: f32 = 70.0;
 const RUNNING_SPEED: f32 = 150.0;
 const TURNING_SPEED: f64 = 9.0;
+const REALOAD_TIME: f32 = 0.5;
 
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -115,6 +116,9 @@ enum BreathAudio {
 #[derive(Debug, Component)]
 pub struct Bullet;
 
+#[derive(Debug, Component)]
+pub struct ReloadTimer(Timer);
+
 fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     let player_ent = entities
         .iter()
@@ -125,6 +129,7 @@ fn label_player(mut commands: Commands, entities: Query<(&Name, Entity)>) {
         .entity(player_ent)
         .insert(Player::default())
         .insert(Stamina(1.0))
+        .insert(ReloadTimer(Timer::from_seconds(REALOAD_TIME, false)))
         .insert(Activity::Standing);
 
     let player_interact_ent = entities
@@ -398,14 +403,24 @@ fn toggle_running(mut activity: Query<&mut Activity, With<Player>>) {
 fn player_shoot(
     mut commands: Commands,
     mut target: Query<&mut ErasedGodotRef, With<Target>>,
-    mut player: Query<(&mut Player, &Transform2D, &mut Activity)>,
+    mut player: Query<(&mut Player, &Transform2D, &mut Activity, &mut ReloadTimer)>,
+    time: Res<Time>,
 ) {
     let input = Input::godot_singleton();
-    let (mut player, player_transform, mut activity) = player.single_mut();
+    let (mut player, player_transform, mut activity, mut reloading) = player.single_mut();
     let mut target = target.single_mut();
+
+    // Update the timer
+    reloading.0.tick(time.delta());
 
     if input.is_action_just_released("aim", false) && player.ammo_count > 0 {
         debug!("Shoot!");
+        if !reloading.0.finished() {
+            debug!("Not done reloading.");
+            return;
+        }
+        reloading.0.reset();
+
         let bullet_transform = *player_transform;
         commands
             .spawn()

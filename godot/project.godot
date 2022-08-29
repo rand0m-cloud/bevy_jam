@@ -10,7 +10,8 @@ config_version=4
 
 [application]
 
-config/name="Godot"
+config/name="The Last Ohioian"
+config/description="The world has truly gone down the worse path possible. Zombies have overrun the place you once called home. You are the last living survivor of your family but you aren't alone in this fight. The Army recognizes your efforts to survive and will drop you supplies when they can. Craft those supplies into traps to increase your odds of surviving."
 run/main_scene="res://main.tscn"
 config/icon="res://icon.png"
 

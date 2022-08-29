@@ -1,12 +1,16 @@
+use crate::GameState;
 use bevy_godot::prelude::{
-    bevy_prelude::{Added, Without},
+    bevy_prelude::{Added, With, Without},
     *,
 };
+use iyes_loopless::prelude::*;
 
 pub struct AlarmPlugin;
 impl Plugin for AlarmPlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(label_alarms).add_system(process_alarms);
+        app.add_system(label_alarms)
+            .add_system(process_alarms)
+            .add_exit_system(GameState::GameOver, on_restart);
     }
 }
 
@@ -110,5 +114,11 @@ fn process_alarms(
                 sound.play(0.0);
             }
         }
+    }
+}
+
+fn on_restart(mut alarms: Query<&mut ErasedGodotRef, With<Alarm>>) {
+    for mut alarm in alarms.iter_mut() {
+        alarm.get::<Node2D>().queue_free();
     }
 }

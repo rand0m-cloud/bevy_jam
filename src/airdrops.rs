@@ -1,17 +1,12 @@
-use crate::{
-    crafting::Part,
-    player::{Player, PlayerInteractVolume},
-    ui::text_log::ItemLogEvent,
-    GameState, Score,
-};
-use bevy::log::*;
-use bevy_godot::prelude::{
-    bevy_prelude::{Added, EventWriter, With, Without},
-    godot_prelude::Vector2,
-    *,
-};
-use iyes_loopless::prelude::*;
-use std::f32::consts::PI;
+use crate::{crafting::Part, player::prelude::*, prelude::*, ui::text_log::ItemLogEvent};
+use bevy_godot::prelude::godot_prelude::{Label, ProgressBar, Vector2};
+use std::{f32::consts::PI, iter};
+
+#[derive(Debug, AssetCollection)]
+pub struct AirDropAssets {
+    #[asset(path = "Airdrop.tscn")]
+    airdrop_scene: Handle<GodotResource>,
+}
 
 pub struct AirDropsPlugin;
 impl Plugin for AirDropsPlugin {
@@ -24,7 +19,7 @@ impl Plugin for AirDropsPlugin {
             .add_startup_system(label_air_drop_progressbar)
             .add_system(label_airdrops)
             .add_system(collect_airdrops)
-            .add_system(drop_airdrops)
+            .add_system(drop_airdrops.run_not_in_state(GameState::Loading))
             .add_system(airdrop_indicator.as_visual_system())
             .insert_resource(airdrop_timer)
             .add_exit_system(GameState::GameOver, on_restart);
@@ -37,37 +32,35 @@ pub struct AirDrop(pub Vec<Part>);
 #[derive(Component)]
 pub struct BonusAirDrop;
 
-#[derive(Component)]
-pub struct AirDropIndicator;
-
-#[derive(Component)]
-pub struct AirDropIndicatorLabel;
+#[derive(Component, NodeTreeView)]
+pub struct AirDropIndicator {
+    #[node("Control/AirdropDistance")]
+    label: ErasedGodotRef,
+}
 
 #[derive(Component)]
 pub struct AirDropProgressBar;
 
 pub struct AirDropTimer(Timer);
 
-fn label_air_drop_indicator(mut commands: Commands, entities: Query<(&Name, Entity)>) {
-    let ent = entities
-        .iter()
-        .find_map(|(name, ent)| (name.as_str() == "AirdropIndicator").then_some(ent))
+fn label_air_drop_indicator(
+    mut commands: Commands,
+    mut entities: Query<(&Name, (Entity, &mut ErasedGodotRef))>,
+) {
+    let (ent, mut indicator) = entities
+        .iter_mut()
+        .find_entity_by_name("AirdropIndicator")
         .unwrap();
 
-    commands.entity(ent).insert(AirDropIndicator);
-
-    let ent = entities
-        .iter()
-        .find_map(|(name, ent)| (name.as_str() == "AirdropDistance").then_some(ent))
-        .unwrap();
-
-    commands.entity(ent).insert(AirDropIndicatorLabel);
+    commands
+        .entity(ent)
+        .insert(AirDropIndicator::from_node(indicator.get::<Node>()));
 }
 
 fn label_air_drop_progressbar(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     let ent = entities
         .iter()
-        .find_map(|(name, ent)| (name.as_str() == "AirdropProgressBar").then_some(ent))
+        .find_entity_by_name("AirdropProgressBar")
         .unwrap();
 
     commands.entity(ent).insert(AirDropProgressBar);
@@ -79,22 +72,21 @@ fn label_airdrops(
 ) {
     for (groups, ent) in entities.iter() {
         if groups.is("airdrop") {
-            commands.entity(ent).insert(AirDrop(vec![
-                Part::random(),
-                Part::random(),
-                Part::random(),
-            ]));
+            commands
+                .entity(ent)
+                .insert(AirDrop(iter::repeat_with(Part::random).take(20).collect()));
         }
     }
 }
 
 fn drop_airdrops(
     mut commands: Commands,
-    mut time: SystemDelta,
+    mut time: SystemDeltaTimer,
     mut airdrop_timer: ResMut<AirDropTimer>,
     player: Query<&Transform2D, With<Player>>,
     mut progress_bar: Query<&mut ErasedGodotRef, With<AirDropProgressBar>>,
     state: Res<CurrentState<GameState>>,
+    assets: Res<AirDropAssets>,
 ) {
     let delta = time.delta();
 
@@ -120,14 +112,14 @@ fn drop_airdrops(
 
         commands
             .spawn()
-            .insert(GodotScene::from_path("res://Airdrop.tscn"))
+            .insert(GodotScene::from_handle(&assets.airdrop_scene))
             .insert(airdrop_transform);
     }
 }
 
 fn collect_airdrops(
     player_interact_volume: Query<&Collisions, With<PlayerInteractVolume>>,
-    mut player: Query<&mut Player>,
+    mut player_inventory: Query<&mut PlayerInventory>,
     mut airdrops: Query<(&AirDrop, &mut ErasedGodotRef, Option<&BonusAirDrop>)>,
     mut airdrop_timer: ResMut<AirDropTimer>,
     mut item_log: EventWriter<ItemLogEvent>,
@@ -140,13 +132,19 @@ fn collect_airdrops(
             let reference = reference.get::<Node>();
             reference.queue_free();
 
-            let mut player = player.single_mut();
-            player.inventory.add_parts(&air_drop.0);
+            let mut player_inventory = player_inventory.single_mut();
+            player_inventory.add_parts(&air_drop.0);
 
             let bullets = 25;
 
-            for part in air_drop.0.iter() {
-                item_log.send(ItemLogEvent(format!("Picked up a {part:?}")));
+            let part_counts: HashMap<Part, usize> =
+                air_drop.0.iter().fold(HashMap::new(), |mut acc, part| {
+                    *acc.entry(*part).or_default() += 1;
+                    acc
+                });
+
+            for (part, count) in part_counts {
+                item_log.send(ItemLogEvent(format!("Picked up {count}x {part:?}")));
             }
             item_log.send(ItemLogEvent(format!("Picked up {} bullets", bullets)));
 
@@ -155,40 +153,21 @@ fn collect_airdrops(
             }
 
             score.0 += 250;
-            player.ammo_count += bullets;
+            player_inventory.add_ammo(bullets);
         }
     }
 }
 
 fn airdrop_indicator(
     mut airdrop_indicator: Query<
-        (&mut Transform2D, &mut ErasedGodotRef),
-        (
-            With<AirDropIndicator>,
-            Without<AirDropIndicatorLabel>,
-            Without<AirDrop>,
-            Without<Player>,
-        ),
+        (&mut AirDropIndicator, &mut Transform2D, &mut ErasedGodotRef),
+        (Without<AirDrop>, Without<Player>),
     >,
-    mut airdrop_indicator_label: Query<
-        &mut ErasedGodotRef,
-        (
-            With<AirDropIndicatorLabel>,
-            Without<AirDrop>,
-            Without<AirDropIndicator>,
-        ),
-    >,
-    mut airdrops: Query<
-        (&Transform2D, &mut ErasedGodotRef),
-        (
-            With<AirDrop>,
-            Without<AirDropIndicator>,
-            Without<AirDropIndicatorLabel>,
-        ),
-    >,
+    mut airdrops: Query<(&Transform2D, &mut ErasedGodotRef), (With<AirDrop>,)>,
     player: Query<&Transform2D, With<Player>>,
 ) {
-    let (mut indicator_transform, mut indicator) = airdrop_indicator.single_mut();
+    let (mut indicator_node, mut indicator_transform, mut indicator) =
+        airdrop_indicator.single_mut();
     let indicator = indicator.get::<Node2D>();
 
     let player = player.single();
@@ -208,8 +187,7 @@ fn airdrop_indicator(
             air_drop.get_global_transform_with_canvas().origin
         };
 
-        let mut indicator_label = airdrop_indicator_label.single_mut();
-        let indicator_label = indicator_label.get::<Label>();
+        let indicator_label = indicator_node.label.get::<Label>();
 
         let screen_size = Vector2::new(1280.0, 720.0);
 

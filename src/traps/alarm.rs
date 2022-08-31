@@ -1,9 +1,5 @@
-use crate::GameState;
-use bevy_godot::prelude::{
-    bevy_prelude::{Added, With, Without},
-    *,
-};
-use iyes_loopless::prelude::*;
+use crate::prelude::*;
+use bevy_godot::prelude::godot_prelude::AudioStreamPlayer2D;
 
 pub struct AlarmPlugin;
 impl Plugin for AlarmPlugin {
@@ -80,7 +76,7 @@ fn label_alarms(
 fn process_alarms(
     mut alarms: Query<(&mut Alarm, &mut ErasedGodotRef, Entity)>,
     mut alarm_sfx_players: Query<(&AlarmAudioPlayer, &mut ErasedGodotRef), Without<Alarm>>,
-    mut time: SystemDelta,
+    mut time: SystemDeltaTimer,
 ) {
     let delta = time.delta();
 

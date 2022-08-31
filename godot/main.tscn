@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=2]
+[gd_scene load_steps=8 format=2]
 
 [ext_resource path="res://Player.tscn" type="PackedScene" id=1]
 [ext_resource path="res://art/crate.png" type="Texture" id=2]
@@ -7,14 +7,11 @@
 [ext_resource path="res://ShelterUI.tscn" type="PackedScene" id=5]
 [ext_resource path="res://ItemSlotUI.tscn" type="PackedScene" id=6]
 [ext_resource path="res://art/crossbow.ogg" type="AudioStream" id=7]
-[ext_resource path="res://AimTarget.tscn" type="PackedScene" id=8]
-[ext_resource path="res://art/out-of-breath.wav" type="AudioStream" id=9]
-[ext_resource path="res://art/fatigued-breath.wav" type="AudioStream" id=10]
-[ext_resource path="res://art/intensive-breath.wav" type="AudioStream" id=11]
 
 [node name="Main" type="Node2D"]
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
+pause_mode = 2
 
 [node name="AirdropIndicator" type="Node2D" parent="CanvasLayer"]
 
@@ -64,6 +61,7 @@ __meta__ = {
 }
 
 [node name="GameOverScreen" type="Control" parent="CanvasLayer"]
+visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
 
@@ -80,6 +78,7 @@ rect_min_size = Vector2( 80, 40 )
 text = "Restart"
 
 [node name="ShelterUI" parent="CanvasLayer" instance=ExtResource( 5 )]
+visible = false
 
 [node name="AirdropProgress" type="Control" parent="CanvasLayer"]
 margin_left = 32.0
@@ -176,23 +175,4 @@ position = Vector2( 91, 10 )
 stream = ExtResource( 7 )
 bus = "Gunshot"
 
-[node name="OutOfBreathAudio" type="AudioStreamPlayer" parent="."]
-stream = ExtResource( 9 )
-bus = "BreathingAudio"
-
-[node name="FatiguedBreathAudio" type="AudioStreamPlayer" parent="."]
-stream = ExtResource( 10 )
-bus = "BreathingAudio"
-
-[node name="IntensiveBreathAudio" type="AudioStreamPlayer" parent="."]
-stream = ExtResource( 11 )
-bus = "BreathingAudio"
-
-[node name="GoToGoal" parent="." instance=ExtResource( 4 )]
-visible = false
-position = Vector2( 200, 200 )
-
-[node name="AimTarget" parent="." instance=ExtResource( 8 )]
-visible = false
-position = Vector2( 0, 200 )
-scale = Vector2( 1, 1 )
+[node name="TrapTarget" parent="." instance=ExtResource( 4 )]

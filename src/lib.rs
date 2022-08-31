@@ -1,16 +1,15 @@
 #![allow(clippy::type_complexity)]
+#![allow(clippy::too_many_arguments)]
 
-use bevy_asset_loader::prelude::*;
-use bevy_godot::prelude::*;
-use iyes_loopless::prelude::*;
-use std::time::Instant;
+use crate::prelude::*;
 
 pub mod airdrops;
-mod crafting;
-mod player;
-mod traps;
-mod ui;
-mod zombies;
+pub mod crafting;
+pub mod player;
+pub mod prelude;
+pub mod traps;
+pub mod ui;
+pub mod zombies;
 
 fn init(_handle: &InitHandle) {}
 
@@ -20,7 +19,10 @@ fn build_app(app: &mut App) {
             LoadingState::new(GameState::Loading)
                 .continue_to_state(GameState::Playing)
                 .with_collection::<zombies::ZombieAssets>()
-                .with_collection::<crafting::CraftingAssets>(),
+                .with_collection::<crafting::CraftingAssets>()
+                .with_collection::<player::weapon::WeaponAssets>()
+                .with_collection::<player::audio::PlayerAudioAssets>()
+                .with_collection::<airdrops::AirDropAssets>(),
         )
         .insert_resource(Score(0))
         .insert_resource(SelectedItemSlot(Some(0)))
@@ -50,7 +52,7 @@ fn set_round_start(mut commands: Commands) {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
-enum GameState {
+pub enum GameState {
     Loading,
     Playing,
     Sheltered,

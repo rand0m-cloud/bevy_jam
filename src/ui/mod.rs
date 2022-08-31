@@ -1,11 +1,11 @@
-use bevy_godot::prelude::*;
+use crate::prelude::*;
 
-mod ammo;
-mod game_over;
-mod item_bar;
-mod score;
-mod shelter;
-mod stamina;
+pub mod ammo;
+pub mod game_over;
+pub mod item_bar;
+pub mod score;
+pub mod shelter;
+pub mod stamina;
 pub mod text_log;
 
 pub struct UiPlugin;

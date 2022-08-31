@@ -1,15 +1,18 @@
-use bevy::log::*;
-use bevy_asset_loader::prelude::*;
-use bevy_godot::prelude::{bevy_prelude::Mut, *};
-use rand::prelude::SliceRandom;
-use std::collections::HashMap;
+use crate::prelude::*;
 
 #[derive(Debug, AssetCollection)]
 pub struct CraftingAssets {
     #[asset(path = "art/bomb.tres")]
     proximity_bomb: Handle<GodotResource>,
+
+    #[asset(path = "traps/ProximityBomb.tscn")]
+    proximity_bomb_scene: Handle<GodotResource>,
+
     #[asset(path = "art/alarm_trap.tres")]
     alarm: Handle<GodotResource>,
+
+    #[asset(path = "traps/Alarm.tscn")]
+    alarm_scene: Handle<GodotResource>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component, PartialOrd, Ord)]
@@ -32,26 +35,42 @@ impl Part {
 
     pub fn random() -> Self {
         let mut rng = rand::thread_rng();
-        *Self::ALL.choose(&mut rng).unwrap()
+        *Self::ALL
+            .choose_weighted(&mut rng, Self::loot_weight)
+            .unwrap()
+    }
+
+    pub fn loot_weight(&self) -> u32 {
+        use Part::*;
+
+        match self {
+            Battery | Electronics => 7,
+            _ => 5,
+        }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Component, PartialOrd, Ord)]
 pub enum Item {
-    Alarm,
     ProximityBomb,
+    Alarm,
     Drone,
 }
 
-impl Item {
-    pub fn from_str(string: &str) -> Option<Self> {
-        Some(match string {
+impl FromStr for Item {
+    type Err = ();
+    fn from_str(string: &str) -> Result<Self, Self::Err> {
+        Ok(match string {
             "Alarm" => Self::Alarm,
             "ProximityBomb" => Self::ProximityBomb,
             "Drone" => Self::Drone,
-            _ => return None,
+            _ => return Err(()),
         })
     }
+}
+
+impl Item {
+    pub const ALL: &'static [Self] = &[Self::ProximityBomb, Self::Alarm];
 
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -69,28 +88,42 @@ impl Item {
         }
     }
 
-    pub fn scene_path(&self) -> &'static str {
+    pub fn as_scene_handle<'a>(&self, assets: &'a CraftingAssets) -> &'a Handle<GodotResource> {
         match self {
-            Self::ProximityBomb => "res://traps/ProximityBomb.tscn",
-            Self::Alarm => "res://traps/Alarm.tscn",
-            _ => panic!("do not have a scene path for {:?}", self),
+            Self::ProximityBomb => &assets.proximity_bomb_scene,
+            Self::Alarm => &assets.alarm_scene,
+            Self::Drone => todo!("missing drone scene"),
         }
     }
 
     pub fn ingredients(&self) -> Vec<Part> {
         use Part::*;
 
-        match self {
-            Self::Alarm => {
-                vec![Electronics, Battery, Buzzer]
+        #[derive(Default)]
+        struct RecipeBuilder(Vec<Part>);
+
+        impl RecipeBuilder {
+            fn add_ingredients(
+                &mut self,
+                ingredients: impl IntoIterator<Item = Part>,
+            ) -> &mut Self {
+                self.0.extend(ingredients);
+                self
             }
-            Self::ProximityBomb => {
-                vec![Electronics, Battery, Explosive]
-            }
-            Self::Drone => {
-                vec![Electronics, Battery, Motor]
+
+            fn finish(self) -> Vec<Part> {
+                self.0
             }
         }
+
+        let mut recipe = RecipeBuilder::default();
+
+        match self {
+            Self::Alarm => recipe.add_ingredients([Electronics, Battery, Buzzer]),
+            Self::ProximityBomb => recipe.add_ingredients([Electronics, Battery, Explosive]),
+            Self::Drone => recipe.add_ingredients([Electronics, Battery, Motor]),
+        };
+        recipe.finish()
     }
 }
 
@@ -98,6 +131,7 @@ impl Item {
 pub struct Inventory {
     parts: HashMap<Part, u32>,
     items: HashMap<Item, u32>,
+    ammo_count: u32,
 }
 
 impl Inventory {
@@ -135,7 +169,6 @@ impl Inventory {
     }
 
     pub fn add_part(&mut self, part: Part) {
-        info!("giving player part: {:?}", part);
         *self.parts.entry(part).or_default() += 1;
     }
 
@@ -159,5 +192,17 @@ impl Inventory {
 
     pub fn get_parts(&self) -> &HashMap<Part, u32> {
         &self.parts
+    }
+
+    pub fn use_ammo(&mut self, count: u32) {
+        self.ammo_count -= count;
+    }
+
+    pub fn add_ammo(&mut self, count: u32) {
+        self.ammo_count += count;
+    }
+
+    pub fn ammo_count(&self) -> u32 {
+        self.ammo_count
     }
 }

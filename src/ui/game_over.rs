@@ -1,6 +1,5 @@
-use bevy::prelude::*;
-use bevy_godot::prelude::*;
-use iyes_loopless::prelude::*;
+use crate::prelude::*;
+use bevy_godot::prelude::godot_prelude::Control;
 
 use crate::GameState;
 
@@ -11,6 +10,7 @@ impl Plugin for GameOverUiPlugin {
         app.add_startup_system(connect_game_over_button)
             .add_startup_system(label_game_over_screen)
             .add_system(listen_to_restart_button.run_in_state(GameState::GameOver))
+            .add_system(listen_to_restart_action.run_in_state(GameState::GameOver))
             .add_enter_system(GameState::GameOver, show_game_over_screen)
             .add_enter_system(GameState::Playing, hide_game_over_screen);
     }
@@ -22,7 +22,7 @@ fn connect_game_over_button(
 ) {
     let mut button = entities
         .iter_mut()
-        .find_map(|(name, ent)| (name.as_str() == "RestartButton").then_some(ent))
+        .find_entity_by_name("RestartButton")
         .unwrap();
     connect_godot_signal(&mut button, "pressed", &mut scene_tree_ref);
 }
@@ -30,9 +30,16 @@ fn connect_game_over_button(
 fn listen_to_restart_button(mut events: EventReader<GodotSignal>, mut commands: Commands) {
     for event in events.iter() {
         if event.name() == "pressed" {
-            info!("Restart button pressed");
             commands.insert_resource(NextState(GameState::Playing));
         }
+    }
+}
+
+fn listen_to_restart_action(mut commands: Commands) {
+    let input = Input::godot_singleton();
+
+    if input.is_action_just_pressed("ui_accept", false) {
+        commands.insert_resource(NextState(GameState::Playing));
     }
 }
 
@@ -42,7 +49,7 @@ struct GameOverScreen;
 fn label_game_over_screen(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     let screen = entities
         .iter()
-        .find_map(|(name, ent)| (name.as_str() == "GameOverScreen").then_some(ent))
+        .find_entity_by_name("GameOverScreen")
         .unwrap();
 
     commands.entity(screen).insert(GameOverScreen);
@@ -51,13 +58,11 @@ fn label_game_over_screen(mut commands: Commands, entities: Query<(&Name, Entity
 fn show_game_over_screen(mut screen: Query<&mut ErasedGodotRef, With<GameOverScreen>>) {
     debug!("Showing game over.");
     let mut screen = screen.single_mut();
-    let screen = screen.get::<Control>();
-    screen.set_visible(true)
+    screen.get::<Control>().set_visible(true);
 }
 
 fn hide_game_over_screen(mut screen: Query<&mut ErasedGodotRef, With<GameOverScreen>>) {
     debug!("Hiding game over.");
     let mut screen = screen.single_mut();
-    let screen = screen.get::<Control>();
-    screen.set_visible(false)
+    screen.get::<Control>().set_visible(false);
 }

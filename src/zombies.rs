@@ -1,14 +1,8 @@
 use std::f32::consts::PI;
 
-use crate::{
-    player::{Player, PlayerInteractVolume},
-    traps::alarm::Alarm,
-    GameState, Hp, RoundStart, Score,
-};
-use bevy_asset_loader::prelude::*;
-use bevy_godot::prelude::{bevy_prelude::*, godot_prelude::Vector2, *};
-use iyes_loopless::prelude::*;
-use rand::prelude::*;
+use crate::prelude::*;
+use crate::{player::prelude::*, traps::alarm::Alarm};
+use bevy_godot::prelude::godot_prelude::{Curve, Physics2DServer, RigidBody2D};
 
 pub struct ZombiesPlugin;
 impl Plugin for ZombiesPlugin {
@@ -22,7 +16,11 @@ impl Plugin for ZombiesPlugin {
                     .run_not_in_state(GameState::Loading),
             )
             .add_system(zombies_move.as_physics_system())
-            .add_system(despawn_faraway_zombies.as_physics_system())
+            .add_system(
+                despawn_faraway_zombies
+                    .as_physics_system()
+                    .run_not_in_state(GameState::Loading),
+            )
             .add_system(kill_zombies.as_physics_system())
             .add_system(zombie_targeting.as_physics_system())
             .add_exit_system(GameState::GameOver, on_restart)
@@ -34,6 +32,9 @@ impl Plugin for ZombiesPlugin {
 pub struct ZombieAssets {
     #[asset(path = "SpawnCurve.tres")]
     population_curve: Handle<GodotResource>,
+
+    #[asset(path = "Zombie.tscn")]
+    zombie_scene: Handle<GodotResource>,
 }
 
 #[derive(Debug, Component)]
@@ -60,7 +61,11 @@ fn random_displacement(min_distance: u32, max_distance: u32) -> Vector2 {
     Vector2::UP.rotated(direction) * distance
 }
 
-fn populate(mut commands: Commands, player: Query<&Transform2D, With<Player>>) {
+fn populate(
+    mut commands: Commands,
+    player: Query<&Transform2D, With<Player>>,
+    assets: Res<ZombieAssets>,
+) {
     let player_origin = player
         .get_single()
         .map(|transform| transform.origin)
@@ -68,7 +73,7 @@ fn populate(mut commands: Commands, player: Query<&Transform2D, With<Player>>) {
 
     for _ in 1..50 {
         let origin = random_displacement(1000, 3000) + player_origin;
-        spawn_zombie(&mut commands, origin);
+        spawn_zombie(&mut commands, &assets, origin);
     }
 }
 
@@ -95,7 +100,6 @@ fn spawn_zombies(
         let probability = if population < population_target {
             curve
                 .get::<Curve>()
-                .unwrap()
                 .interpolate_baked(population / population_target)
         } else {
             0.0
@@ -111,27 +115,30 @@ fn spawn_zombies(
         let player = player.single();
         let origin = player.origin + random_displacement(1250, 3000);
 
-        spawn_zombie(&mut commands, origin);
+        spawn_zombie(&mut commands, &zombie_assets, origin);
     }
 }
 
-fn spawn_zombie(commands: &mut Commands, origin: Vector2) {
+fn spawn_zombie(commands: &mut Commands, assets: &ZombieAssets, origin: Vector2) {
     debug!("Spawning at {origin:?}");
     commands
         .spawn()
-        .insert(GodotScene::from_path("res://Zombie.tscn"))
+        .insert(GodotScene::from_handle(&assets.zombie_scene))
         .insert(Zombie)
         .insert(Hp(10.0))
         .insert(Target::random(origin))
-        .insert(Transform2D(
-            GodotTransform2D::from_rotation_translation_scale(origin, 0.0, Vector2::ONE),
-        ));
+        .insert(Transform2D(GodotTransform2D::from_scale_rotation_origin(
+            Vector2::ONE,
+            0.0,
+            origin,
+        )));
 }
 
 fn despawn_faraway_zombies(
     mut commands: Commands,
     player: Query<&Transform2D, With<Player>>,
     mut zombies: Query<(&Transform2D, &mut ErasedGodotRef), With<Zombie>>,
+    assets: Res<ZombieAssets>,
 ) {
     let player = player.single();
     for (transform, mut zombie) in zombies.iter_mut() {
@@ -146,17 +153,14 @@ fn despawn_faraway_zombies(
 
             // Replace zombie near the player
             let origin = player.origin + random_displacement(1250, 3000);
-            spawn_zombie(&mut commands, origin);
+            spawn_zombie(&mut commands, &assets, origin);
         }
     }
 }
 
 fn zombies_move(
     mut zombies: Query<(&Target, &mut ErasedGodotRef), (With<Zombie>, Without<Player>)>,
-    mut time: SystemDelta,
-    // HACK: this system accesses the physics server and needs to be run on the
-    // main thread. this system param will force this system to be run on the
-    // main thread
+    mut time: SystemDeltaTimer,
     _scene_tree: SceneTreeRef,
     state: Res<CurrentState<GameState>>,
 ) {

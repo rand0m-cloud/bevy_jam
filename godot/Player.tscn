@@ -42,10 +42,10 @@ modulate = Color( 1, 1, 1, 0.784314 )
 current = true
 zoom = Vector2( 2, 2 )
 
-[node name="InteractVolume" type="Area2D" parent="."]
+[node name="PlayerInteractVolume" type="Area2D" parent="."]
 collision_mask = 5
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="InteractVolume"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="PlayerInteractVolume"]
 shape = SubResource( 1 )
 
 [node name="AnimatedSprite" type="AnimatedSprite" parent="."]

@@ -1,7 +1,7 @@
-use bevy_godot::prelude::*;
+use crate::prelude::*;
 
 pub mod alarm;
-mod prox_bomb;
+pub mod prox_bomb;
 
 pub struct TrapsPlugin;
 impl Plugin for TrapsPlugin {

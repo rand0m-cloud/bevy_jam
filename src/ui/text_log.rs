@@ -1,5 +1,5 @@
-use bevy_godot::prelude::{bevy_prelude::EventReader, *};
-use std::time::{Duration, Instant};
+use crate::prelude::*;
+use bevy_godot::prelude::godot_prelude::Label;
 
 pub struct ItemLogPlugin;
 impl Plugin for ItemLogPlugin {
@@ -48,7 +48,7 @@ pub struct ItemLogEvent(pub String);
 fn label_item_log(mut commands: Commands, entities: Query<(&Name, Entity)>) {
     let ent = entities
         .iter()
-        .find_map(|(name, ent)| (name.as_str() == "ItemPickupText").then_some(ent))
+        .find_entity_by_name("ItemPickupText")
         .unwrap();
 
     commands.entity(ent).insert(ItemLogText::default());

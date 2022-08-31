@@ -1,6 +1,5 @@
-use crate::{GameState, Score};
-use bevy_godot::prelude::{bevy_prelude::With, *};
-use iyes_loopless::prelude::*;
+use crate::prelude::*;
+use bevy_godot::prelude::godot_prelude::Label;
 
 pub struct ScoreUiPlugin;
 impl Plugin for ScoreUiPlugin {
@@ -19,10 +18,7 @@ pub struct ScoreLabel;
 pub struct ScoreTimer(Timer);
 
 fn label_score_ui(mut commands: Commands, entities: Query<(&Name, Entity)>) {
-    let score_ui_ent = entities
-        .iter()
-        .find_map(|(name, ent)| (name.as_str() == "ScoreLabel").then_some(ent))
-        .unwrap();
+    let score_ui_ent = entities.iter().find_entity_by_name("ScoreLabel").unwrap();
 
     commands.entity(score_ui_ent).insert(ScoreLabel);
 }
@@ -38,7 +34,7 @@ fn update_score_ui(score: Res<Score>, mut score_ui: Query<&mut ErasedGodotRef, W
 
 fn update_score_timer(
     mut score: ResMut<Score>,
-    mut time: SystemDelta,
+    mut time: SystemDeltaTimer,
     mut score_timer: ResMut<ScoreTimer>,
     state: Res<CurrentState<GameState>>,
 ) {

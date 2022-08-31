@@ -1,8 +1,6 @@
-use crate::player::Player;
-use bevy_godot::prelude::{
-    bevy_prelude::{Changed, With},
-    *,
-};
+use crate::player::prelude::*;
+use crate::prelude::*;
+use bevy_godot::prelude::godot_prelude::Label;
 
 pub struct AmmoUiPlugin;
 impl Plugin for AmmoUiPlugin {
@@ -16,22 +14,19 @@ impl Plugin for AmmoUiPlugin {
 pub struct AmmoLabel;
 
 fn label_ammo_ui(mut commands: Commands, entities: Query<(&Name, Entity)>) {
-    let score_ui_ent = entities
-        .iter()
-        .find_map(|(name, ent)| (name.as_str() == "AmmoLabel").then_some(ent))
-        .unwrap();
+    let score_ui_ent = entities.iter().find_entity_by_name("AmmoLabel").unwrap();
 
     commands.entity(score_ui_ent).insert(AmmoLabel);
 }
 
 fn update_ammo_ui(
     mut ammo_ui: Query<&mut ErasedGodotRef, With<AmmoLabel>>,
-    player: Query<&Player, Changed<Player>>,
+    player: Query<&PlayerInventory, Changed<PlayerInventory>>,
 ) {
     if let Ok(player) = player.get_single() {
         let mut ammo_ui = ammo_ui.single_mut();
         ammo_ui
             .get::<Label>()
-            .set_text(format!("Ammo Remaining: {}", player.ammo_count));
+            .set_text(format!("Ammo Remaining: {}", player.ammo_count()));
     }
 }

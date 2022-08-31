@@ -1,10 +1,8 @@
-use crate::{crafting::CraftingAssets, player::Player, GameState, SelectedItemSlot};
-use bevy_godot::prelude::{
-    bevy_prelude::Changed,
-    godot_prelude::{Color, Null},
-    *,
+use crate::player::prelude::*;
+use crate::prelude::*;
+use bevy_godot::prelude::godot_prelude::{
+    Color, ColorRect, Input, Label, Null, Texture, TextureRect,
 };
-use iyes_loopless::prelude::*;
 
 pub struct ItemBarUiPlugin;
 
@@ -16,160 +14,86 @@ impl Plugin for ItemBarUiPlugin {
                     .as_visual_system()
                     .run_not_in_state(GameState::Loading),
             )
-            .add_system(update_selected_slot.as_visual_system());
+            .add_system(
+                update_selected_slot
+                    .as_visual_system()
+                    .run_in_state(GameState::Playing),
+            );
     }
 }
 
-#[derive(Component)]
-pub struct ItemSlotTexture(u16);
+#[derive(NodeTreeView, Component)]
+pub struct ItemSlotUi {
+    #[node("Background")]
+    bg: ErasedGodotRef,
+
+    #[node("ItemTexture")]
+    texture: ErasedGodotRef,
+
+    #[node("Control/ItemCounterLabel")]
+    counter: ErasedGodotRef,
+}
 
 #[derive(Component)]
-pub struct ItemSlotBackground(u16);
-
-#[derive(Component)]
-pub struct ItemSlotCountLabel(u16);
+pub struct ItemSlot(u16);
 
 fn label_item_bar_nodes(
     mut commands: Commands,
     mut entities: Query<(&Name, Entity, &mut ErasedGodotRef)>,
 ) {
-    let mut item_textures = vec![];
-    for (name, _, mut reference) in entities.iter_mut() {
+    for (name, ent, mut reference) in entities.iter_mut() {
         if name.as_str().starts_with("ItemSlot") {
-            let item_texture_instance_id = unsafe {
-                reference
-                    .get::<Node>()
-                    .get_node("ItemTexture")
-                    .unwrap()
-                    .assume_safe()
-                    .get_instance_id()
-            };
-
-            let item_bg_instance_id = unsafe {
-                reference
-                    .get::<Node>()
-                    .get_node("Background")
-                    .unwrap()
-                    .assume_safe()
-                    .get_instance_id()
-            };
-
-            let item_count_instance_id = unsafe {
-                reference
-                    .get::<Node>()
-                    .get_node("Control/ItemCounterLabel")
-                    .unwrap()
-                    .assume_safe()
-                    .get_instance_id()
-            };
-
-            let name = name.to_string();
             let slot_num = &name["ItemSlot".len()..].parse::<u16>().unwrap() - 1;
-
-            item_textures.push((
-                item_texture_instance_id,
-                item_bg_instance_id,
-                item_count_instance_id,
-                slot_num,
-            ));
+            let ui = ItemSlotUi::from_node(reference.get::<Node>());
+            commands.entity(ent).insert(ui).insert(ItemSlot(slot_num));
         }
-    }
-
-    for (texture_instance_id, bg_instance_id, item_count_instance_id, slot_num) in item_textures {
-        let texture_ent = entities
-            .iter()
-            .find_map(|(_, ent, reference)| {
-                (reference.instance_id() == texture_instance_id).then_some(ent)
-            })
-            .unwrap();
-        commands
-            .entity(texture_ent)
-            .insert(ItemSlotTexture(slot_num));
-
-        let bg_ent = entities
-            .iter()
-            .find_map(|(_, ent, reference)| {
-                (reference.instance_id() == bg_instance_id).then_some(ent)
-            })
-            .unwrap();
-        commands.entity(bg_ent).insert(ItemSlotBackground(slot_num));
-
-        let count_ent = entities
-            .iter()
-            .find_map(|(_, ent, reference)| {
-                (reference.instance_id() == item_count_instance_id).then_some(ent)
-            })
-            .unwrap();
-        commands
-            .entity(count_ent)
-            .insert(ItemSlotCountLabel(slot_num));
     }
 }
 
 fn update_item_bar(
-    player: Query<&Player, Changed<Player>>,
-    item_textures: Query<(&ItemSlotTexture, Entity)>,
-    item_counters: Query<(&ItemSlotCountLabel, Entity)>,
-    mut entities: Query<&mut ErasedGodotRef>,
+    player_inventory: Query<&PlayerInventory, Changed<PlayerInventory>>,
+    mut item_slots: Query<(&ItemSlot, &mut ItemSlotUi)>,
     crafting_assets: Res<CraftingAssets>,
     assets: Res<Assets<GodotResource>>,
 ) {
-    if let Ok(player) = player.get_single() {
-        let player_items = player
-            .inventory
+    if let Ok(player_inventory) = player_inventory.get_single() {
+        let mut player_items = player_inventory
             .get_items()
             .iter()
             .filter(|(_, count)| **count > 0)
             .collect::<Vec<_>>();
+        player_items.sort();
 
-        let mut item_bar_texture_ents = item_textures
-            .iter()
-            .map(|(texture, ent)| (texture.0, ent))
-            .collect::<Vec<_>>();
-        item_bar_texture_ents.sort_by(|(a, _), (b, _)| a.cmp(b));
+        let mut item_slots = item_slots.iter_mut().collect::<Vec<_>>();
+        item_slots.sort_by(|(item_slot_a, _), (item_slot_b, _)| item_slot_a.0.cmp(&item_slot_b.0));
 
-        let mut item_bar_count = 0;
-        player_items
-            .iter()
-            .zip(item_bar_texture_ents.iter())
-            .for_each(|((item, _count), (_texture, texture_ent))| {
-                item_bar_count += 1;
-                let mut texture_node = entities.get_mut(*texture_ent).unwrap();
-                let texture_node = texture_node.get::<TextureRect>();
+        for (item_slot, ui) in item_slots.iter_mut() {
+            let (count, texture) = match player_items.get(item_slot.0 as usize) {
+                Some((item, count)) => {
+                    let texture_handle = item.as_texture_handle(&crafting_assets);
+                    let texture = assets
+                        .get(texture_handle)
+                        .and_then(|t| t.0.clone().cast::<Texture>())
+                        .unwrap();
 
-                let texture_handle = item.as_texture_handle(&crafting_assets);
-                let texture = assets.get(texture_handle).unwrap();
+                    (count.to_string(), Some(texture))
+                }
+                _ => ("".to_string(), None),
+            };
 
-                texture_node.set_texture(texture.0.clone().cast::<Texture>().unwrap());
-            });
+            match texture {
+                Some(t) => ui.texture.get::<TextureRect>().set_texture(t),
+                _ => ui.texture.get::<TextureRect>().set_texture(Null::null()),
+            };
 
-        // set remaining slots to empty texture
-        for (_, texture_ent) in item_bar_texture_ents.iter().skip(item_bar_count) {
-            let mut texture_node = entities.get_mut(*texture_ent).unwrap();
-            let texture_node = texture_node.get::<TextureRect>();
-            texture_node.set_texture(Null::null());
-        }
-
-        // update item counters
-        let mut item_counter_ents = item_counters.iter().collect::<Vec<_>>();
-        item_counter_ents.sort_by(|(slot_a, _), (slot_b, _)| slot_a.0.cmp(&slot_b.0));
-
-        for (slot, ent) in item_counter_ents {
-            let mut counter = entities.get_mut(ent).unwrap();
-            let text = player_items
-                .get(slot.0 as usize)
-                .map(|(_, count)| count.to_string())
-                .unwrap_or_else(|| "".to_string());
-
-            counter.get::<Label>().set_text(text);
+            ui.counter.get::<Label>().set_text(count);
         }
     }
 }
 
 fn update_selected_slot(
     mut selected_slot: ResMut<SelectedItemSlot>,
-    item_bg: Query<(&ItemSlotBackground, Entity)>,
-    mut entities: Query<&mut ErasedGodotRef>,
+    mut item_slots: Query<(&ItemSlot, &mut ItemSlotUi)>,
 ) {
     let input = Input::godot_singleton();
 
@@ -179,29 +103,43 @@ fn update_selected_slot(
     for (action, id) in slots {
         if input.is_action_just_pressed(action, false) {
             slot_num = Some(id);
-            println!("setting slot to {}", id);
+            debug!("setting slot to {}", id);
             break;
         }
     }
 
     selected_slot.0 = slot_num;
 
-    let mut item_bar_bg_ents = item_bg
-        .iter()
-        .map(|(bg, ent)| (bg.0, ent))
-        .collect::<Vec<_>>();
-    item_bar_bg_ents.sort_by(|(a, _), (b, _)| a.cmp(b));
+    let slot_num_delta = if input.is_action_just_pressed("prev_slot", false) {
+        Some(-1)
+    } else if input.is_action_just_pressed("next_slot", false) {
+        Some(1)
+    } else {
+        None
+    };
 
-    // set active/inactive on item slots
-    for (i, bg_ent) in item_bar_bg_ents {
-        let color = if selected_slot.0 == Some(i) {
+    let mut item_slots = item_slots.iter_mut().collect::<Vec<_>>();
+    item_slots.sort_by(|(item_slot_a, _), (item_slot_b, _)| item_slot_a.0.cmp(&item_slot_b.0));
+
+    if let Some(slot_num_delta) = slot_num_delta {
+        let slot = selected_slot.0.unwrap_or_default();
+
+        let new_slot = if slot == 0 && slot_num_delta < 0 {
+            item_slots.len() as i16 + slot_num_delta
+        } else {
+            (slot as i16 + slot_num_delta) % item_slots.len() as i16
+        };
+
+        selected_slot.0 = Some(new_slot as u16);
+    }
+
+    for (slot, mut ui) in item_slots {
+        let color = if selected_slot.0 == Some(slot.0) {
             Color::from_rgba(0.1, 0.09, 0.09, 1.0)
         } else {
             Color::from_rgba(0.1, 0.09, 0.09, 0.5)
         };
 
-        let mut bg_node = entities.get_mut(bg_ent).unwrap();
-        let bg_node = bg_node.get::<ColorRect>();
-        bg_node.set_frame_color(color);
+        ui.bg.get::<ColorRect>().set_frame_color(color);
     }
 }

@@ -3,7 +3,7 @@
 [ext_resource path="res://art/alarm_trap.tres" type="Texture" id=1]
 [ext_resource path="res://art/alarm.ogg" type="AudioStream" id=2]
 
-[node name="Alarm" type="Node2D" groups=["alarm"]]
+[node name="Alarm" type="Node2D" groups=["alarm", "trap"]]
 
 [node name="AlarmTrap" type="Sprite" parent="."]
 texture = ExtResource( 1 )
